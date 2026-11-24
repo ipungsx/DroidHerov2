@@ -156,36 +156,36 @@ func set_theme(id: String) -> void:
 		GameState.save_data()
 		theme_changed.emit(id)
 
-func make_card_style(bg: Color, border_col: Color, radius: int = 16, border_w: int = 2, glow_size: int = 0) -> StyleBoxFlat:
+func make_card_style(bg: Color, border_col: Color, radius: int = 14, border_w: int = 2, glow_size: int = 0) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = bg
 	sb.border_color = border_col
 	sb.set_border_width_all(border_w)
 	sb.set_corner_radius_all(radius)
-	sb.content_margin_left = 16
-	sb.content_margin_right = 16
-	sb.content_margin_top = 12
-	sb.content_margin_bottom = 12
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 8
 	if glow_size > 0:
-		sb.shadow_color = Color(border_col.r, border_col.g, border_col.b, 0.32)
+		sb.shadow_color = Color(border_col.r, border_col.g, border_col.b, 0.30)
 		sb.shadow_size = glow_size
 	return sb
 
 func style_button(btn: Button, primary: bool = false, custom_col: Color = Color(0, 0, 0, 0)) -> void:
 	var t := get_theme_data()
 	var col: Color = custom_col if custom_col.a > 0.01 else (t["accent"] if primary else t["border"])
-	var bg_norm: Color = Color(col.r * 0.22, col.g * 0.22, col.b * 0.28, 0.92) if primary else t["panel_alt"]
+	var bg_norm: Color = Color(col.r * 0.24, col.g * 0.24, col.b * 0.30, 0.94) if primary else t["panel_alt"]
 	var bg_hover: Color = Color(col.r * 0.36, col.g * 0.36, col.b * 0.42, 0.98)
-	var bg_press: Color = Color(col.r * 0.52, col.g * 0.52, col.b * 0.58, 1.0)
-	btn.add_theme_stylebox_override("normal", make_card_style(bg_norm, col, 12, 2, 8 if primary else 0))
-	btn.add_theme_stylebox_override("hover", make_card_style(bg_hover, col.lightened(0.25), 12, 2, 12))
-	btn.add_theme_stylebox_override("pressed", make_card_style(bg_press, Color.WHITE, 12, 2, 14))
-	btn.add_theme_stylebox_override("focus", make_card_style(bg_hover, col.lightened(0.25), 12, 2, 10))
-	btn.add_theme_stylebox_override("disabled", make_card_style(Color(0.1, 0.1, 0.12, 0.5), Color(0.3, 0.3, 0.35, 0.4), 12, 1, 0))
+	var bg_press: Color = Color(col.r * 0.54, col.g * 0.54, col.b * 0.60, 1.0)
+	btn.add_theme_stylebox_override("normal", make_card_style(bg_norm, col, 10, 2, 6 if primary else 0))
+	btn.add_theme_stylebox_override("hover", make_card_style(bg_hover, col.lightened(0.25), 10, 2, 10))
+	btn.add_theme_stylebox_override("pressed", make_card_style(bg_press, Color.WHITE, 10, 2, 12))
+	btn.add_theme_stylebox_override("focus", make_card_style(bg_hover, col.lightened(0.25), 10, 2, 8))
+	btn.add_theme_stylebox_override("disabled", make_card_style(Color(0.1, 0.1, 0.12, 0.5), Color(0.3, 0.3, 0.35, 0.4), 10, 1, 0))
 	btn.add_theme_color_override("font_color", t["text"])
 	btn.add_theme_color_override("font_hover_color", Color.WHITE)
 	btn.add_theme_color_override("font_pressed_color", Color.WHITE)
 	if font_body:
 		btn.add_theme_font_override("font", font_body)
-	btn.add_theme_font_size_override("font_size", 20)
+	btn.add_theme_font_size_override("font_size", 19)
 	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND

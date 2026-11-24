@@ -78,6 +78,7 @@ jobs:
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             TARGET_TAG="${GITHUB_REF_NAME}"
           else
-            TARGET_TAG="${INPUT_TAG:-v2.0.0}"
+            TARGET_TAG="${INPUT_TAG:-v2.1.0}"
           fi
+          gh release view "${TARGET_TAG}" >/dev/null 2>&1 || gh release create "${TARGET_TAG}" --title "DroidHeroV2 ${TARGET_TAG}" --generate-notes
           gh release upload "${TARGET_TAG}" /tmp/dh_out/DroidHeroV2.apk --clobber

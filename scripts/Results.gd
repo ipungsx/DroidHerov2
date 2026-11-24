@@ -14,17 +14,23 @@ func _ready() -> void:
 	var res := GameState.last_result
 	var song := GameState.current_song
 
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(center)
+	var margin := MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margin.add_theme_constant_override("margin_left", 60)
+	margin.add_theme_constant_override("margin_right", 60)
+	margin.add_theme_constant_override("margin_top", 22)
+	margin.add_theme_constant_override("margin_bottom", 22)
+	add_child(margin)
 
 	var card := PanelContainer.new()
-	card.custom_minimum_size = Vector2(760, 520)
-	card.add_theme_stylebox_override("panel", ThemeManager.make_card_style(Color(0.04, 0.04, 0.10, 0.94), t["accent"], 22, 3, 22))
-	center.add_child(card)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	card.add_theme_stylebox_override("panel", ThemeManager.make_card_style(Color(0.04, 0.04, 0.10, 0.95), t["accent"], 18, 3, 18))
+	margin.add_child(card)
 
 	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 14)
+	vbox.add_theme_constant_override("separation", 8)
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	card.add_child(vbox)
 
 	# Header
@@ -35,7 +41,7 @@ func _ready() -> void:
 	banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if ThemeManager.font_display:
 		banner.add_theme_font_override("font", ThemeManager.font_display)
-	banner.add_theme_font_size_override("font_size", 28)
+	banner.add_theme_font_size_override("font_size", 24)
 	banner.add_theme_color_override("font_color", t["star_power"] if is_fc else t["accent"])
 	vbox.add_child(banner)
 
@@ -44,37 +50,39 @@ func _ready() -> void:
 	song_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if ThemeManager.font_body:
 		song_lbl.add_theme_font_override("font", ThemeManager.font_body)
-	song_lbl.add_theme_font_size_override("font_size", 20)
+	song_lbl.add_theme_font_size_override("font_size", 19)
 	song_lbl.add_theme_color_override("font_color", t["text_dim"])
 	vbox.add_child(song_lbl)
 
-	# 5 Stars Row
+	# 5 Stars + Big Score Row
+	var score_row := HBoxContainer.new()
+	score_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	score_row.add_theme_constant_override("separation", 24)
+	vbox.add_child(score_row)
+
 	var stars := int(res.get("stars", 3))
 	var star_lbl := Label.new()
 	var s_txt := ""
 	for i in range(5):
-		s_txt += "★ " if i < stars else "☆ "
-	star_lbl.text = s_txt.strip_edges()
-	star_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	star_lbl.add_theme_font_size_override("font_size", 48)
+		s_txt += "★" if i < stars else "☆"
+	star_lbl.text = s_txt
+	star_lbl.add_theme_font_size_override("font_size", 38)
 	star_lbl.add_theme_color_override("font_color", Color(1.0, 0.86, 0.20) if not is_fc else t["star_power"])
-	vbox.add_child(star_lbl)
+	score_row.add_child(star_lbl)
 
-	# Big Score
 	var score_lbl := Label.new()
 	score_lbl.text = str(int(res.get("score", 0))) + " PTS"
-	score_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if ThemeManager.font_display:
 		score_lbl.add_theme_font_override("font", ThemeManager.font_display)
-	score_lbl.add_theme_font_size_override("font_size", 42)
+	score_lbl.add_theme_font_size_override("font_size", 34)
 	score_lbl.add_theme_color_override("font_color", t["text"])
-	vbox.add_child(score_lbl)
+	score_row.add_child(score_lbl)
 
 	# Stats Grid
 	var grid := GridContainer.new()
 	grid.columns = 4
-	grid.add_theme_constant_override("h_separation", 14)
-	grid.add_theme_constant_override("v_separation", 10)
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 8)
 	vbox.add_child(grid)
 
 	_add_stat_box(grid, "ACCURACY", "%.1f%%" % float(res.get("accuracy", 0.0)), t["accent"], t)
@@ -89,12 +97,12 @@ func _ready() -> void:
 	# Action Buttons
 	var btn_row := HBoxContainer.new()
 	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	btn_row.add_theme_constant_override("separation", 18)
+	btn_row.add_theme_constant_override("separation", 16)
 	vbox.add_child(btn_row)
 
 	var btn_replay := Button.new()
 	btn_replay.text = "PLAY AGAIN"
-	btn_replay.custom_minimum_size = Vector2(220, 54)
+	btn_replay.custom_minimum_size = Vector2(210, 50)
 	ThemeManager.style_button(btn_replay, false)
 	btn_replay.pressed.connect(func():
 		GameState.play_click()
@@ -103,8 +111,8 @@ func _ready() -> void:
 	btn_row.add_child(btn_replay)
 
 	var btn_menu := Button.new()
-	btn_menu.text = "SONG LIBRARY & ENCHOR.US"
-	btn_menu.custom_minimum_size = Vector2(280, 54)
+	btn_menu.text = "SONG LIBRARY"
+	btn_menu.custom_minimum_size = Vector2(230, 50)
 	ThemeManager.style_button(btn_menu, true)
 	btn_menu.pressed.connect(func():
 		GameState.play_click()
@@ -117,7 +125,7 @@ func _ready() -> void:
 func _add_stat_box(parent: Control, label_txt: String, val_txt: String, val_col: Color, t: Dictionary) -> void:
 	var p := PanelContainer.new()
 	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	p.add_theme_stylebox_override("panel", ThemeManager.make_card_style(t["panel_alt"], Color(val_col.r, val_col.g, val_col.b, 0.55), 12, 1, 0))
+	p.add_theme_stylebox_override("panel", ThemeManager.make_card_style(t["panel_alt"], Color(val_col.r, val_col.g, val_col.b, 0.55), 10, 1, 0))
 	parent.add_child(p)
 	var vb := VBoxContainer.new()
 	vb.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -135,6 +143,6 @@ func _add_stat_box(parent: Control, label_txt: String, val_txt: String, val_col:
 	v.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if ThemeManager.font_display:
 		v.add_theme_font_override("font", ThemeManager.font_display)
-	v.add_theme_font_size_override("font_size", 22)
+	v.add_theme_font_size_override("font_size", 21)
 	v.add_theme_color_override("font_color", val_col)
 	vb.add_child(v)

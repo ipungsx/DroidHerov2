@@ -36,6 +36,7 @@ var _file_dialog: FileDialog
 # Calibration tap state
 var _cal_taps: Array[float] = []
 var _cal_beat_timer: float = 0.0
+var _cal_test_active: bool = false
 var _cal_lbl: Label
 var _fps_badge: Label
 
@@ -54,13 +55,17 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	if _fps_badge:
-		_fps_badge.text = str(Engine.get_frames_per_second()) + " FPS • 60Hz VSYNC"
-	if _active_tab == 3:
+		_fps_badge.text = str(Engine.get_frames_per_second()) + " FPS"
+	if _active_tab == 3 and _cal_test_active:
 		_cal_beat_timer += delta
-		if _cal_beat_timer >= 0.5: # 120 BPM metronome pulse for tap calibration
+		if _cal_beat_timer >= 0.5:
 			_cal_beat_timer -= 0.5
+			GameState.play_click()
 			if _stage:
+				_stage.music_playing = true
 				_stage.trigger_drum(0, 0.75)
+	elif _stage:
+		_stage.music_playing = false
 
 func _on_theme_changed(_id: String) -> void:
 	var keep_tab := _active_tab
@@ -73,51 +78,54 @@ func _rebuild_ui() -> void:
 	_tab_buttons.clear()
 	_diff_buttons.clear()
 	_cover_rects.clear()
+	_cal_test_active = false
 
 	var t := ThemeManager.get_theme_data()
 
-	# 1. Animated Concert Stage Background
+	# 1. Concert Stage Background (static when no music is playing)
 	_stage = ConcertStage.new()
 	_stage.menu_idle_mode = true
+	_stage.music_playing = false
 	_stage.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(_stage)
 
 	# 2. Main Layout Container
 	_root_panel = MarginContainer.new()
 	_root_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_root_panel.add_theme_constant_override("margin_left", 26)
-	_root_panel.add_theme_constant_override("margin_right", 26)
-	_root_panel.add_theme_constant_override("margin_top", 18)
-	_root_panel.add_theme_constant_override("margin_bottom", 18)
+	_root_panel.add_theme_constant_override("margin_left", 14)
+	_root_panel.add_theme_constant_override("margin_right", 14)
+	_root_panel.add_theme_constant_override("margin_top", 10)
+	_root_panel.add_theme_constant_override("margin_bottom", 10)
 	add_child(_root_panel)
 
 	var main_vbox := VBoxContainer.new()
-	main_vbox.add_theme_constant_override("separation", 14)
+	main_vbox.add_theme_constant_override("separation", 10)
 	_root_panel.add_child(main_vbox)
 
-	# Top Fancy Header Bar
+	# Top Header Bar
 	var header := PanelContainer.new()
-	header.add_theme_stylebox_override("panel", ThemeManager.make_card_style(t["panel"], t["border"], 16, 2, 12))
+	header.add_theme_stylebox_override("panel", ThemeManager.make_card_style(t["panel"], t["border"], 14, 2, 10))
 	main_vbox.add_child(header)
 
 	var hbox := HBoxContainer.new()
-	hbox.add_theme_constant_override("separation", 16)
+	hbox.add_theme_constant_override("separation", 10)
 	header.add_child(hbox)
 
 	var brand_vbox := VBoxContainer.new()
 	brand_vbox.add_theme_constant_override("separation", 0)
+	brand_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	hbox.add_child(brand_vbox)
 
 	var logo := Label.new()
 	logo.text = "DROIDHERO V2"
 	if ThemeManager.font_display:
 		logo.add_theme_font_override("font", ThemeManager.font_display)
-	logo.add_theme_font_size_override("font_size", 28)
+	logo.add_theme_font_size_override("font_size", 23)
 	logo.add_theme_color_override("font_color", t["accent"])
 	brand_vbox.add_child(logo)
 
 	var sub := Label.new()
-	sub.text = "ARENA RHYTHM EDITION • POWERED BY ENCHOR.US"
+	sub.text = "ENCHOR.US RHYTHM ARENA"
 	if ThemeManager.font_semi:
 		sub.add_theme_font_override("font", ThemeManager.font_semi)
 	sub.add_theme_font_size_override("font_size", 13)
@@ -128,11 +136,11 @@ func _rebuild_ui() -> void:
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hbox.add_child(spacer)
 
-	var nav_names := ["PLAY LIBRARY", "ENCHOR.US CHARTS", "THEMES", "SETTINGS"]
+	var nav_names := ["PLAY", "ENCHOR.US", "THEMES", "SETTINGS"]
 	for i in range(nav_names.size()):
 		var b := Button.new()
 		b.text = nav_names[i]
-		b.custom_minimum_size = Vector2(162, 46)
+		b.custom_minimum_size = Vector2(130, 44)
 		ThemeManager.style_button(b, i == _active_tab)
 		var idx := i
 		b.pressed.connect(func():
@@ -146,7 +154,7 @@ func _rebuild_ui() -> void:
 	_fps_badge.text = "60 FPS"
 	if ThemeManager.font_semi:
 		_fps_badge.add_theme_font_override("font", ThemeManager.font_semi)
-	_fps_badge.add_theme_font_size_override("font_size", 14)
+	_fps_badge.add_theme_font_size_override("font_size", 15)
 	_fps_badge.add_theme_color_override("font_color", t["accent_2"])
 	hbox.add_child(_fps_badge)
 
@@ -166,6 +174,8 @@ func _rebuild_ui() -> void:
 
 func _switch_tab(idx: int) -> void:
 	_active_tab = idx
+	if idx != 3:
+		_cal_test_active = false
 	for i in range(_content_stack.get_child_count()):
 		var ch := _content_stack.get_child(i) as Control
 		ch.visible = (i == idx)
@@ -183,38 +193,40 @@ func _switch_tab(idx: int) -> void:
 func _build_library_tab(t: Dictionary) -> void:
 	var split := HBoxContainer.new()
 	split.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	split.add_theme_constant_override("separation", 18)
+	split.add_theme_constant_override("separation", 12)
 	_content_stack.add_child(split)
 
 	# Left: Installed Songs Scroll List
 	var left_card := PanelContainer.new()
 	left_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left_card.size_flags_stretch_ratio = 1.35
-	left_card.add_theme_stylebox_override("panel", ThemeManager.make_card_style(t["panel"], t["border"], 16, 2, 8))
+	left_card.size_flags_stretch_ratio = 1.15
+	left_card.add_theme_stylebox_override("panel", ThemeManager.make_card_style(t["panel"], t["border"], 14, 2, 6))
 	split.add_child(left_card)
 
 	var lv := VBoxContainer.new()
-	lv.add_theme_constant_override("separation", 10)
+	lv.add_theme_constant_override("separation", 8)
 	left_card.add_child(lv)
 
 	var lh := HBoxContainer.new()
+	lh.add_theme_constant_override("separation", 8)
 	lv.add_child(lh)
 
 	var ltitle := Label.new()
-	ltitle.text = "INSTALLED SETLIST"
+	ltitle.text = "SONG LIST"
 	if ThemeManager.font_display:
 		ltitle.add_theme_font_override("font", ThemeManager.font_display)
-	ltitle.add_theme_font_size_override("font_size", 20)
+	ltitle.add_theme_font_size_override("font_size", 19)
 	ltitle.add_theme_color_override("font_color", t["accent"])
 	ltitle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	lh.add_child(ltitle)
 
 	var btn_import := Button.new()
-	btn_import.text = "+ IMPORT .SNG / .ZIP"
+	btn_import.text = "+ IMPORT .SNG/.ZIP"
+	btn_import.custom_minimum_size = Vector2(165, 40)
 	ThemeManager.style_button(btn_import, false)
 	btn_import.pressed.connect(func():
 		GameState.play_click()
-		_file_dialog.popup_centered_ratio(0.75)
+		_file_dialog.popup_centered_ratio(0.85)
 	)
 	lh.add_child(btn_import)
 
@@ -231,26 +243,19 @@ func _build_library_tab(t: Dictionary) -> void:
 	var right_card := PanelContainer.new()
 	right_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	right_card.size_flags_stretch_ratio = 1.0
-	right_card.add_theme_stylebox_override("panel", ThemeManager.make_card_style(t["panel"], t["accent_2"], 16, 2, 12))
+	right_card.add_theme_stylebox_override("panel", ThemeManager.make_card_style(t["panel"], t["accent_2"], 14, 2, 10))
 	split.add_child(right_card)
 
 	var rv := VBoxContainer.new()
-	rv.add_theme_constant_override("separation", 12)
+	rv.add_theme_constant_override("separation", 7)
 	right_card.add_child(rv)
-
-	var badge := Label.new()
-	badge.text = "SELECTED TRACK"
-	if ThemeManager.font_semi:
-		badge.add_theme_font_override("font", ThemeManager.font_semi)
-	badge.add_theme_font_size_override("font_size", 14)
-	badge.add_theme_color_override("font_color", t["accent_2"])
-	rv.add_child(badge)
 
 	_detail_title = Label.new()
 	_detail_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_detail_title.max_lines_visible = 2
 	if ThemeManager.font_display:
 		_detail_title.add_theme_font_override("font", ThemeManager.font_display)
-	_detail_title.add_theme_font_size_override("font_size", 24)
+	_detail_title.add_theme_font_size_override("font_size", 21)
 	_detail_title.add_theme_color_override("font_color", t["text"])
 	rv.add_child(_detail_title)
 
@@ -258,34 +263,26 @@ func _build_library_tab(t: Dictionary) -> void:
 	_detail_meta.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	if ThemeManager.font_body:
 		_detail_meta.add_theme_font_override("font", ThemeManager.font_body)
-	_detail_meta.add_theme_font_size_override("font_size", 18)
+	_detail_meta.add_theme_font_size_override("font_size", 17)
 	_detail_meta.add_theme_color_override("font_color", t["text_dim"])
 	rv.add_child(_detail_meta)
 
 	_detail_best = Label.new()
 	if ThemeManager.font_body:
 		_detail_best.add_theme_font_override("font", ThemeManager.font_body)
-	_detail_best.add_theme_font_size_override("font_size", 19)
+	_detail_best.add_theme_font_size_override("font_size", 17)
 	_detail_best.add_theme_color_override("font_color", Color(1.0, 0.86, 0.24))
 	rv.add_child(_detail_best)
 
-	var diff_lbl := Label.new()
-	diff_lbl.text = "SELECT DIFFICULTY (5-FRET GUITAR)"
-	if ThemeManager.font_semi:
-		diff_lbl.add_theme_font_override("font", ThemeManager.font_semi)
-	diff_lbl.add_theme_font_size_override("font_size", 15)
-	diff_lbl.add_theme_color_override("font_color", t["text_dim"])
-	rv.add_child(diff_lbl)
-
 	var diff_row := HBoxContainer.new()
-	diff_row.add_theme_constant_override("separation", 8)
+	diff_row.add_theme_constant_override("separation", 6)
 	rv.add_child(diff_row)
 
 	for d: String in ["Easy", "Medium", "Hard", "Expert"]:
 		var db := Button.new()
 		db.text = d.to_upper()
 		db.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		db.custom_minimum_size = Vector2(0, 44)
+		db.custom_minimum_size = Vector2(0, 42)
 		var d_name: String = d
 		db.pressed.connect(func():
 			GameState.play_click()
@@ -297,46 +294,54 @@ func _build_library_tab(t: Dictionary) -> void:
 
 	# Practice Speed Selector
 	var prac_row := HBoxContainer.new()
-	prac_row.add_theme_constant_override("separation", 10)
+	prac_row.add_theme_constant_override("separation", 8)
 	rv.add_child(prac_row)
 
 	var plbl := Label.new()
-	plbl.text = "MODE / SPEED:"
+	plbl.text = "SPEED:"
 	if ThemeManager.font_body:
 		plbl.add_theme_font_override("font", ThemeManager.font_body)
 	plbl.add_theme_font_size_override("font_size", 18)
-	plbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	prac_row.add_child(plbl)
 
 	_practice_spd_opt = OptionButton.new()
-	_practice_spd_opt.add_item("CONCERT 100% (RANKED)", 0)
+	_practice_spd_opt.add_item("NORMAL 100% (RANKED)", 0)
 	_practice_spd_opt.add_item("PRACTICE 75% (SLOW)", 1)
 	_practice_spd_opt.add_item("PRACTICE 50% (LEARN)", 2)
 	_practice_spd_opt.add_item("HYPERSPEED 125%", 3)
-	_practice_spd_opt.custom_minimum_size = Vector2(230, 40)
+	_practice_spd_opt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_practice_spd_opt.custom_minimum_size = Vector2(0, 40)
+	if ThemeManager.font_body:
+		_practice_spd_opt.add_theme_font_override("font", ThemeManager.font_body)
+	_practice_spd_opt.add_theme_font_size_override("font_size", 17)
 	prac_row.add_child(_practice_spd_opt)
 
 	var r_spacer := Control.new()
 	r_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	rv.add_child(r_spacer)
 
+	var act_row := HBoxContainer.new()
+	act_row.add_theme_constant_override("separation", 8)
+	rv.add_child(act_row)
+
 	var btn_get_more := Button.new()
-	btn_get_more.text = "GET MORE SONGS FROM ENCHOR.US →"
-	btn_get_more.custom_minimum_size = Vector2(0, 46)
+	btn_get_more.text = "+ ENCHOR.US"
+	btn_get_more.custom_minimum_size = Vector2(138, 52)
 	ThemeManager.style_button(btn_get_more, false)
 	btn_get_more.pressed.connect(func():
 		GameState.play_click()
 		_switch_tab(1)
 	)
-	rv.add_child(btn_get_more)
+	act_row.add_child(btn_get_more)
 
 	var btn_play := Button.new()
-	btn_play.text = "★ ROCK ON STAGE! ★"
-	btn_play.custom_minimum_size = Vector2(0, 64)
+	btn_play.text = "★ PLAY NOW! ★"
+	btn_play.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn_play.custom_minimum_size = Vector2(0, 52)
 	ThemeManager.style_button(btn_play, true, t["accent"])
-	btn_play.add_theme_font_size_override("font_size", 24)
+	btn_play.add_theme_font_size_override("font_size", 22)
 	btn_play.pressed.connect(_launch_selected_song)
-	rv.add_child(btn_play)
+	act_row.add_child(btn_play)
 
 	_populate_library_list()
 
@@ -355,17 +360,17 @@ func _populate_library_list() -> void:
 		row.add_theme_stylebox_override(
 			"panel",
 			ThemeManager.make_card_style(
-				t["panel_alt"] if is_sel else Color(0.05, 0.05, 0.11, 0.72),
-				t["accent"] if is_sel else Color(1, 1, 1, 0.14),
-				12,
+				t["panel_alt"] if is_sel else Color(0.05, 0.05, 0.11, 0.78),
+				t["accent"] if is_sel else Color(1, 1, 1, 0.16),
+				10,
 				2 if is_sel else 1,
-				8 if is_sel else 0
+				6 if is_sel else 0
 			)
 		)
 		_lib_list_vbox.add_child(row)
 
 		var hb := HBoxContainer.new()
-		hb.add_theme_constant_override("separation", 12)
+		hb.add_theme_constant_override("separation", 10)
 		row.add_child(hb)
 
 		var vb := VBoxContainer.new()
@@ -373,16 +378,17 @@ func _populate_library_list() -> void:
 		hb.add_child(vb)
 
 		var nt := Label.new()
-		nt.text = str(song.get("name", "Song")) + ("  [BUILT-IN]" if bool(song.get("bundled", false)) else "")
+		nt.text = str(song.get("name", "Song"))
+		nt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		if ThemeManager.font_body:
 			nt.add_theme_font_override("font", ThemeManager.font_body)
-		nt.add_theme_font_size_override("font_size", 20)
+		nt.add_theme_font_size_override("font_size", 19)
 		nt.add_theme_color_override("font_color", t["text"])
 		vb.add_child(nt)
 
 		var dur_s := int(song.get("song_length", 180000)) / 1000
 		var sub := Label.new()
-		sub.text = "%s • %s • %d:%02d" % [str(song.get("artist", "Artist")), str(song.get("genre", "Rock")), dur_s / 60, dur_s % 60]
+		sub.text = "%s • %d:%02d" % [str(song.get("artist", "Artist")), dur_s / 60, dur_s % 60]
 		if ThemeManager.font_semi:
 			sub.add_theme_font_override("font", ThemeManager.font_semi)
 		sub.add_theme_font_size_override("font_size", 15)
@@ -390,8 +396,8 @@ func _populate_library_list() -> void:
 		vb.add_child(sub)
 
 		var sel_btn := Button.new()
-		sel_btn.text = "SELECTED" if is_sel else "SELECT"
-		sel_btn.custom_minimum_size = Vector2(115, 42)
+		sel_btn.text = "✓ READY" if is_sel else "SELECT"
+		sel_btn.custom_minimum_size = Vector2(106, 44)
 		ThemeManager.style_button(sel_btn, is_sel)
 		var s_copy: Dictionary = song
 		sel_btn.pressed.connect(func():
@@ -410,19 +416,18 @@ func _refresh_detail_panel() -> void:
 	var s := GameState.current_song
 	_detail_title.text = str(s.get("name", "No Song Selected"))
 	var dur_s := int(s.get("song_length", 180000)) / 1000
-	_detail_meta.text = "Artist: %s\nCharter: %s  •  Genre: %s  •  Length: %d:%02d" % [
+	_detail_meta.text = "%s  •  Charter: %s  •  %d:%02d" % [
 		str(s.get("artist", "-")),
 		str(s.get("charter", "-")),
-		str(s.get("genre", "Rock")),
 		dur_s / 60,
 		dur_s % 60
 	]
 	var best := GameState.get_best(str(s.get("id", "")), GameState.current_difficulty)
 	if best.is_empty():
-		_detail_best.text = "HIGHSCORE (" + GameState.current_difficulty.to_upper() + "): No record yet — Set the first score!"
+		_detail_best.text = "BEST (" + GameState.current_difficulty.to_upper() + "): No record yet"
 	else:
 		var st_str := "★".repeat(int(best.get("stars", 1)))
-		var fc_str := " [FULL COMBO!]" if bool(best.get("fc", false)) else ""
+		var fc_str := " [FC]" if bool(best.get("fc", false)) else ""
 		_detail_best.text = "BEST: %d PTS  %s  (%.1f%%)%s" % [
 			int(best.get("score", 0)),
 			st_str,
@@ -738,46 +743,49 @@ func _build_file_importer() -> void:
 func _build_themes_tab(t: Dictionary) -> void:
 	var card := PanelContainer.new()
 	card.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	card.add_theme_stylebox_override("panel", ThemeManager.make_card_style(t["panel"], t["border"], 16, 2, 10))
+	card.add_theme_stylebox_override("panel", ThemeManager.make_card_style(t["panel"], t["border"], 14, 2, 8))
 	_content_stack.add_child(card)
 
 	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 14)
+	vbox.add_theme_constant_override("separation", 10)
 	card.add_child(vbox)
 
 	var title := Label.new()
-	title.text = "CHOOSE ARENA VISUAL THEME (UI + STAGE LIGHTS + HIGHWAY)"
+	title.text = "CHOOSE ARENA VISUAL THEME"
 	if ThemeManager.font_display:
 		title.add_theme_font_override("font", ThemeManager.font_display)
-	title.add_theme_font_size_override("font_size", 22)
+	title.add_theme_font_size_override("font_size", 19)
 	title.add_theme_color_override("font_color", t["accent"])
 	vbox.add_child(title)
 
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.add_child(scroll)
+
 	var grid := GridContainer.new()
 	grid.columns = 3
-	grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 16)
-	grid.add_theme_constant_override("v_separation", 16)
-	vbox.add_child(grid)
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 12)
+	scroll.add_child(grid)
 
 	for tid in ThemeManager.THEMES.keys():
 		var td: Dictionary = ThemeManager.THEMES[tid]
 		var active: bool = (str(tid) == ThemeManager.current_theme_id)
 		var tc := PanelContainer.new()
 		tc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		tc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		tc.add_theme_stylebox_override("panel", ThemeManager.make_card_style(td["panel_alt"], td["accent"], 16, 3 if active else 1, 14 if active else 0))
+		tc.add_theme_stylebox_override("panel", ThemeManager.make_card_style(td["panel_alt"], td["accent"], 12, 3 if active else 1, 10 if active else 0))
 		grid.add_child(tc)
 
 		var tv := VBoxContainer.new()
-		tv.add_theme_constant_override("separation", 8)
+		tv.add_theme_constant_override("separation", 6)
 		tc.add_child(tv)
 
 		var tname := Label.new()
 		tname.text = str(td["name"])
 		if ThemeManager.font_display:
 			tname.add_theme_font_override("font", ThemeManager.font_display)
-		tname.add_theme_font_size_override("font_size", 19)
+		tname.add_theme_font_size_override("font_size", 17)
 		tname.add_theme_color_override("font_color", td["accent"])
 		tv.add_child(tname)
 
@@ -790,23 +798,18 @@ func _build_themes_tab(t: Dictionary) -> void:
 		tsub.add_theme_color_override("font_color", td["text_dim"])
 		tv.add_child(tsub)
 
-		# Spotlight palette swatches
 		var sw_row := HBoxContainer.new()
-		sw_row.add_theme_constant_override("separation", 8)
+		sw_row.add_theme_constant_override("separation", 6)
 		tv.add_child(sw_row)
 		for sc in td["spotlights"]:
 			var sw := ColorRect.new()
 			sw.color = sc
-			sw.custom_minimum_size = Vector2(34, 18)
+			sw.custom_minimum_size = Vector2(30, 16)
 			sw_row.add_child(sw)
 
-		var sp := Control.new()
-		sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		tv.add_child(sp)
-
 		var btn := Button.new()
-		btn.text = "✓ ACTIVE THEME" if active else "APPLY THEME"
-		btn.custom_minimum_size = Vector2(0, 44)
+		btn.text = "✓ ACTIVE" if active else "APPLY"
+		btn.custom_minimum_size = Vector2(0, 42)
 		ThemeManager.style_button(btn, active, td["accent"])
 		var target_id := str(tid)
 		btn.pressed.connect(func():
@@ -821,32 +824,38 @@ func _build_themes_tab(t: Dictionary) -> void:
 func _build_settings_tab(t: Dictionary) -> void:
 	var card := PanelContainer.new()
 	card.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	card.add_theme_stylebox_override("panel", ThemeManager.make_card_style(t["panel"], t["border"], 16, 2, 10))
+	card.add_theme_stylebox_override("panel", ThemeManager.make_card_style(t["panel"], t["border"], 14, 2, 8))
 	_content_stack.add_child(card)
 
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	card.add_child(scroll)
+
 	var hsplit := HBoxContainer.new()
-	hsplit.add_theme_constant_override("separation", 24)
-	card.add_child(hsplit)
+	hsplit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hsplit.add_theme_constant_override("separation", 20)
+	scroll.add_child(hsplit)
 
 	# Left column: Gameplay & Visual Sliders
 	var left_v := VBoxContainer.new()
 	left_v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left_v.add_theme_constant_override("separation", 14)
+	left_v.add_theme_constant_override("separation", 10)
 	hsplit.add_child(left_v)
 
 	var stitle := Label.new()
-	stitle.text = "GAMEPLAY & STAGE PERFORMANCE"
+	stitle.text = "GAMEPLAY & STAGE"
 	if ThemeManager.font_display:
 		stitle.add_theme_font_override("font", ThemeManager.font_display)
-	stitle.add_theme_font_size_override("font_size", 20)
+	stitle.add_theme_font_size_override("font_size", 19)
 	stitle.add_theme_color_override("font_color", t["accent"])
 	left_v.add_child(stitle)
 
-	_add_slider_row(left_v, "Highway Note Speed (Hyperspeed)", 0.7, 1.8, 0.05, float(GameState.settings.get("note_speed", 1.0)), func(v: float):
+	_add_slider_row(left_v, "Highway Note Speed", 0.7, 1.8, 0.05, float(GameState.settings.get("note_speed", 1.0)), func(v: float):
 		GameState.settings["note_speed"] = v
 		GameState.save_data()
 	)
-	_add_slider_row(left_v, "Concert Lights & Drum Flash Intensity", 0.4, 1.5, 0.05, float(GameState.settings.get("light_intensity", 1.0)), func(v: float):
+	_add_slider_row(left_v, "Stage Drum Light Intensity", 0.4, 1.5, 0.05, float(GameState.settings.get("light_intensity", 1.0)), func(v: float):
 		GameState.settings["light_intensity"] = v
 		GameState.save_data()
 	)
@@ -854,13 +863,16 @@ func _build_settings_tab(t: Dictionary) -> void:
 		GameState.settings["music_volume"] = v
 		GameState.save_data()
 	)
-	_add_slider_row(left_v, "Guitar / SFX Volume", 0.0, 1.0, 0.05, float(GameState.settings.get("sfx_volume", 0.85)), func(v: float):
+	_add_slider_row(left_v, "SFX Volume", 0.0, 1.0, 0.05, float(GameState.settings.get("sfx_volume", 0.85)), func(v: float):
 		GameState.settings["sfx_volume"] = v
 		GameState.save_data()
 	)
 
 	var chk_nofail := CheckButton.new()
-	chk_nofail.text = "No-Fail Mode (Never fail even if Rock Meter hits zero)"
+	chk_nofail.text = "No-Fail Mode"
+	if ThemeManager.font_body:
+		chk_nofail.add_theme_font_override("font", ThemeManager.font_body)
+	chk_nofail.add_theme_font_size_override("font_size", 18)
 	chk_nofail.button_pressed = bool(GameState.settings.get("no_fail", false))
 	chk_nofail.toggled.connect(func(on: bool):
 		GameState.settings["no_fail"] = on
@@ -869,7 +881,10 @@ func _build_settings_tab(t: Dictionary) -> void:
 	left_v.add_child(chk_nofail)
 
 	var chk_fps := CheckButton.new()
-	chk_fps.text = "Show Live 60 FPS Counter in HUD"
+	chk_fps.text = "Show FPS Counter in HUD"
+	if ThemeManager.font_body:
+		chk_fps.add_theme_font_override("font", ThemeManager.font_body)
+	chk_fps.add_theme_font_size_override("font_size", 18)
 	chk_fps.button_pressed = bool(GameState.settings.get("show_fps", true))
 	chk_fps.toggled.connect(func(on: bool):
 		GameState.settings["show_fps"] = on
@@ -880,49 +895,59 @@ func _build_settings_tab(t: Dictionary) -> void:
 	# Right column: Audio / Touch Latency Calibration
 	var right_v := VBoxContainer.new()
 	right_v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	right_v.add_theme_constant_override("separation", 14)
+	right_v.add_theme_constant_override("separation", 10)
 	hsplit.add_child(right_v)
 
 	var ctitle := Label.new()
-	ctitle.text = "AUDIO / TOUCH LATENCY CALIBRATION"
+	ctitle.text = "LATENCY CALIBRATION"
 	if ThemeManager.font_display:
 		ctitle.add_theme_font_override("font", ThemeManager.font_display)
-	ctitle.add_theme_font_size_override("font_size", 20)
+	ctitle.add_theme_font_size_override("font_size", 19)
 	ctitle.add_theme_color_override("font_color", t["accent_2"])
 	right_v.add_child(ctitle)
 
 	_cal_lbl = Label.new()
-	_cal_lbl.text = "Current Audio Offset: %d ms" % int(round(float(GameState.settings.get("audio_offset_ms", 0.0))))
+	_cal_lbl.text = "Audio Offset: %d ms" % int(round(float(GameState.settings.get("audio_offset_ms", 0.0))))
 	if ThemeManager.font_body:
 		_cal_lbl.add_theme_font_override("font", ThemeManager.font_body)
-	_cal_lbl.add_theme_font_size_override("font_size", 22)
+	_cal_lbl.add_theme_font_size_override("font_size", 20)
 	right_v.add_child(_cal_lbl)
 
 	var cal_slider := HSlider.new()
 	cal_slider.min_value = -150.0
 	cal_slider.max_value = 150.0
 	cal_slider.step = 5.0
+	cal_slider.custom_minimum_size = Vector2(0, 30)
 	cal_slider.value = float(GameState.settings.get("audio_offset_ms", 0.0))
 	cal_slider.value_changed.connect(func(v: float):
 		GameState.settings["audio_offset_ms"] = v
 		GameState.save_data()
-		_cal_lbl.text = "Current Audio Offset: %d ms" % int(round(v))
+		_cal_lbl.text = "Audio Offset: %d ms" % int(round(v))
 	)
 	right_v.add_child(cal_slider)
 
-	var cal_help := Label.new()
-	cal_help.text = "Bluetooth / Android audio sync helper: Watch the concert stage lights pulse at 120 BPM and tap the button below 6 times on the beat to auto-calibrate!"
-	cal_help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	cal_help.add_theme_color_override("font_color", t["text_dim"])
-	right_v.add_child(cal_help)
+	var btn_toggle_beat := Button.new()
+	btn_toggle_beat.text = "▶ START BEAT SOUND TEST"
+	btn_toggle_beat.custom_minimum_size = Vector2(0, 44)
+	ThemeManager.style_button(btn_toggle_beat, false)
+	btn_toggle_beat.pressed.connect(func():
+		_cal_test_active = not _cal_test_active
+		_cal_beat_timer = 0.0
+		_cal_taps.clear()
+		btn_toggle_beat.text = "■ STOP BEAT SOUND TEST" if _cal_test_active else "▶ START BEAT SOUND TEST"
+	)
+	right_v.add_child(btn_toggle_beat)
 
 	var btn_tap := Button.new()
-	btn_tap.text = "🥁 TAP ON THE LIGHT BEAT TO CALIBRATE"
-	btn_tap.custom_minimum_size = Vector2(0, 62)
+	btn_tap.text = "🥁 TAP ON BEAT TO CALIBRATE"
+	btn_tap.custom_minimum_size = Vector2(0, 52)
 	ThemeManager.style_button(btn_tap, true, t["accent_2"])
 	btn_tap.pressed.connect(func():
-		GameState.play_click()
-		# Signed distance from nearest 0.5s beat pulse (-0.25 .. +0.25s)
+		if not _cal_test_active:
+			_cal_test_active = true
+			_cal_beat_timer = 0.0
+			btn_toggle_beat.text = "■ STOP BEAT SOUND TEST"
+			return
 		var signed_err := _cal_beat_timer if _cal_beat_timer <= 0.25 else (_cal_beat_timer - 0.5)
 		_cal_taps.append(signed_err * 1000.0)
 		if _cal_taps.size() > 6:
@@ -937,21 +962,29 @@ func _build_settings_tab(t: Dictionary) -> void:
 
 func _add_slider_row(parent: Control, label_txt: String, min_v: float, max_v: float, step_v: float, init_v: float, cb: Callable) -> void:
 	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 2)
 	parent.add_child(vb)
 	var hb := HBoxContainer.new()
 	vb.add_child(hb)
 	var l := Label.new()
 	l.text = label_txt
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if ThemeManager.font_body:
+		l.add_theme_font_override("font", ThemeManager.font_body)
+	l.add_theme_font_size_override("font_size", 18)
 	hb.add_child(l)
 	var vl := Label.new()
 	vl.text = "%.2f" % init_v
+	if ThemeManager.font_body:
+		vl.add_theme_font_override("font", ThemeManager.font_body)
+	vl.add_theme_font_size_override("font_size", 18)
 	hb.add_child(vl)
 	var sl := HSlider.new()
 	sl.min_value = min_v
 	sl.max_value = max_v
 	sl.step = step_v
 	sl.value = init_v
+	sl.custom_minimum_size = Vector2(0, 28)
 	sl.value_changed.connect(func(val: float):
 		vl.text = "%.2f" % val
 		cb.call(val)

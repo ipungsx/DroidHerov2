@@ -9,6 +9,7 @@ extends Control
 # - Animated concert crowd silhouettes jumping to the drum groove
 
 var menu_idle_mode: bool = false
+var music_playing: bool = false
 var star_power_active: bool = false
 var combo_level: int = 1 # 1..4
 
@@ -17,6 +18,7 @@ var kick_pulse: float = 0.0
 var snare_pulse: float = 0.0
 var cymbal_pulse: float = 0.0
 var light_scale: float = 1.0
+var _has_audio_energy: bool = false
 
 var _time: float = 0.0
 var _spectrum: AudioEffectSpectrumAnalyzerInstance
@@ -35,7 +37,7 @@ var _crowd_heads: PackedFloat32Array = PackedFloat32Array()
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_eq_bars.resize(16)
-	_eq_bars.fill(0.08)
+	_eq_bars.fill(0.05)
 	_beam_poly.resize(4)
 	_beam_cols.resize(4)
 	_crowd_heads.resize(34)
@@ -45,6 +47,8 @@ func _ready() -> void:
 	light_scale = float(GameState.settings.get("light_intensity", 1.0))
 
 func trigger_drum(drum_type: int, strength: float = 1.0) -> void:
+	if not music_playing:
+		return
 	if drum_type == 0: # Kick drum boom
 		kick_pulse = clampf(maxf(kick_pulse, 1.15 * strength), 0.0, 1.5)
 	elif drum_type == 1: # Snare crack
@@ -54,13 +58,12 @@ func trigger_drum(drum_type: int, strength: float = 1.0) -> void:
 		cymbal_pulse = clampf(maxf(cymbal_pulse, 0.95 * strength), 0.0, 1.4)
 
 func _process(delta: float) -> void:
-	_time += delta
 	light_scale = float(GameState.settings.get("light_intensity", 1.0))
 
-	# Smooth exponential decay of drum light envelopes
-	kick_pulse = maxf(0.0, kick_pulse - delta * 4.4)
-	snare_pulse = maxf(0.0, snare_pulse - delta * 6.2)
-	cymbal_pulse = maxf(0.0, cymbal_pulse - delta * 5.0)
+	# Smooth decay of drum light envelopes
+	kick_pulse = maxf(0.0, kick_pulse - delta * 4.6)
+	snare_pulse = maxf(0.0, snare_pulse - delta * 6.4)
+	cymbal_pulse = maxf(0.0, cymbal_pulse - delta * 5.2)
 	_beat_cooldown = maxf(0.0, _beat_cooldown - delta)
 	_snare_cooldown = maxf(0.0, _snare_cooldown - delta)
 
@@ -68,23 +71,21 @@ func _process(delta: float) -> void:
 		_spectrum = GameState.get_music_spectrum()
 
 	var audio_active := false
-	if _spectrum != null:
+	if music_playing and _spectrum != null:
 		# Sample sub-bass / kick (35..135 Hz) and snare transient band (180..420 Hz + 1.8k..4.5k Hz)
 		var sub_mag := _spectrum.get_magnitude_for_frequency_range(35.0, 135.0, AudioEffectSpectrumAnalyzerInstance.MAGNITUDE_MAX).length()
 		var low_mid := _spectrum.get_magnitude_for_frequency_range(160.0, 360.0, AudioEffectSpectrumAnalyzerInstance.MAGNITUDE_AVERAGE).length()
 		var snap_hi := _spectrum.get_magnitude_for_frequency_range(1800.0, 4800.0, AudioEffectSpectrumAnalyzerInstance.MAGNITUDE_MAX).length()
 		var hat_hi := _spectrum.get_magnitude_for_frequency_range(5500.0, 12000.0, AudioEffectSpectrumAnalyzerInstance.MAGNITUDE_AVERAGE).length()
 
-		if sub_mag > 0.002 or low_mid > 0.002:
+		if sub_mag > 0.004 or low_mid > 0.004 or snap_hi > 0.004:
 			audio_active = true
-			# Real-time onset flux detector for kick drum thumps!
 			var sub_flux := sub_mag - _prev_sub_energy
 			if sub_flux > 0.045 and sub_mag > 0.085 and _beat_cooldown <= 0.0:
 				trigger_drum(0, clampf(sub_mag * 4.2, 0.65, 1.35))
 				_beat_cooldown = 0.13
 			_prev_sub_energy = lerpf(_prev_sub_energy, sub_mag, delta * 14.0)
 
-			# Real-time snare crack onset
 			var snare_e := low_mid * 0.6 + snap_hi * 0.9
 			if (snare_e - _prev_snare_energy) > 0.04 and snare_e > 0.075 and _snare_cooldown <= 0.0:
 				trigger_drum(1, clampf(snare_e * 4.0, 0.55, 1.25))
@@ -93,26 +94,27 @@ func _process(delta: float) -> void:
 
 			if hat_hi > 0.035:
 				cymbal_pulse = maxf(cymbal_pulse, clampf(hat_hi * 5.5, 0.0, 0.85))
+		else:
+			_prev_sub_energy = lerpf(_prev_sub_energy, 0.0, delta * 10.0)
+			_prev_snare_energy = lerpf(_prev_snare_energy, 0.0, delta * 10.0)
 
-		# Update 16-band LED wall
 		var f_lo := 40.0
 		for i in range(16):
 			var f_hi := f_lo * 1.38
 			var m := _spectrum.get_magnitude_for_frequency_range(f_lo, f_hi).length()
-			var target := clampf(sqrt(m) * 2.4, 0.05, 1.0)
-			_eq_bars[i] = lerpf(_eq_bars[i], target, delta * 18.0)
+			var target := clampf(sqrt(m) * 2.4, 0.05, 1.0) if audio_active else 0.05
+			_eq_bars[i] = lerpf(_eq_bars[i], target, delta * 14.0)
 			f_lo = f_hi
-
-	# Menu idle concert groove when no song audio is actively playing
-	if menu_idle_mode and not audio_active:
-		var beat_phase := fmod(_time * 2.1, 1.0) # ~126 BPM arena preview pulse
-		if beat_phase < delta * 2.2 and _beat_cooldown <= 0.0:
-			var bar_step := int(_time * 2.1) % 2
-			trigger_drum(0 if bar_step == 0 else 1, 0.82)
-			_beat_cooldown = 0.22
+	else:
+		kick_pulse = 0.0
+		snare_pulse = 0.0
+		cymbal_pulse = 0.0
 		for i in range(16):
-			var w := 0.18 + 0.35 * absf(sin(_time * 3.2 + float(i) * 0.45)) + kick_pulse * (0.35 if i < 5 else 0.12)
-			_eq_bars[i] = lerpf(_eq_bars[i], clampf(w, 0.06, 0.95), delta * 10.0)
+			_eq_bars[i] = lerpf(_eq_bars[i], 0.05, delta * 10.0)
+
+	_has_audio_energy = music_playing and (audio_active or kick_pulse > 0.02 or snare_pulse > 0.02)
+	if _has_audio_energy:
+		_time += delta
 
 	queue_redraw()
 
@@ -206,20 +208,20 @@ func _draw() -> void:
 		var ly := truss_y + 10.0
 		var lcol: Color = sp_col if star_power_active else spots[i % spots.size()]
 
-		# Sweep angle modulated by time + combo + kick punch
+		# Sweep angle modulated only while music is actively playing
 		var speed := 1.35 + float(combo_level) * 0.28
-		var sweep := sin(_time * speed + float(i) * 0.92) * (0.38 + kp * 0.18)
-		# Point outer lights slightly inward toward stage center
-		var base_tilt := (0.5 - frac) * 0.52
+		var sweep := (sin(_time * speed + float(i) * 0.92) * (0.38 + kp * 0.18)) if _has_audio_energy else 0.0
+		var base_tilt := (0.5 - frac) * 0.48
 		var angle := base_tilt + sweep
 
 		var beam_len := sz.y * 0.92
 		var dir := Vector2(sin(angle), cos(angle))
 		var perp := Vector2(dir.y, -dir.x)
-		var top_w := 8.0 + kp * 5.0
-		var bot_w := sz.x * (0.055 + kp * 0.042 + snp * 0.025)
+		var top_w := 7.0 + kp * 5.0
+		var bot_w := sz.x * (0.052 + kp * 0.042 + snp * 0.025)
 
-		var alpha_top := clampf((0.26 + kp * 0.36 + snp * 0.22) * light_scale, 0.05, 0.82)
+		var base_a := 0.24 if _has_audio_energy else 0.12
+		var alpha_top := clampf((base_a + kp * 0.36 + snp * 0.22) * light_scale, 0.04, 0.82)
 		_beam_poly[0] = Vector2(lx, ly) - perp * top_w
 		_beam_poly[1] = Vector2(lx, ly) + perp * top_w
 		_beam_poly[2] = Vector2(lx, ly) + dir * beam_len + perp * bot_w
@@ -231,13 +233,13 @@ func _draw() -> void:
 		_beam_cols[3] = Color(lcol.r, lcol.g, lcol.b, 0.0)
 		draw_polygon(_beam_poly, _beam_cols)
 
-		# Lamp head flare & hot white core
-		var flare_r := 9.0 + kp * 9.0 + snp * 6.0
-		draw_circle(Vector2(lx, ly), flare_r * 1.9, Color(lcol.r, lcol.g, lcol.b, clampf(0.32 + kp * 0.4, 0.1, 0.85)))
-		draw_circle(Vector2(lx, ly), flare_r * 0.65, Color(1.0, 1.0, 1.0, 0.95))
+		# Lamp head flare & core
+		var flare_r := 7.5 + kp * 9.0 + snp * 6.0
+		draw_circle(Vector2(lx, ly), flare_r * 1.7, Color(lcol.r, lcol.g, lcol.b, clampf((0.22 if not _has_audio_energy else 0.34) + kp * 0.4, 0.1, 0.85)))
+		draw_circle(Vector2(lx, ly), flare_r * 0.58, Color(1.0, 1.0, 1.0, 0.88))
 
-	# 6. Cymbal / Snare Criss-Crossing Laser Show
-	if cyp > 0.08 or snp > 0.12 or star_power_active:
+	# 6. Cymbal / Snare Criss-Crossing Laser Show (only during active music)
+	if _has_audio_energy and (cyp > 0.08 or snp > 0.12 or star_power_active):
 		var laser_alpha := clampf(maxf(cyp * 0.65, snp * 0.75) + (0.35 if star_power_active else 0.0), 0.0, 0.85) * light_scale
 		var num_lasers := 6
 		for l in range(num_lasers):
@@ -248,30 +250,27 @@ func _draw() -> void:
 			var lc: Color = sp_col if star_power_active else spots[(l + _laser_seed) % spots.size()]
 			draw_line(Vector2(emitter_x, emitter_y), target, Color(lc.r, lc.g, lc.b, laser_alpha), 2.2 + snp * 2.0)
 
-	# 7. Snare Blinder Strobe Flash (Concert Arena Blinders)
-	if snp > 0.15:
+	# 7. Snare Blinder Strobe Flash (only during active music)
+	if _has_audio_energy and snp > 0.15:
 		var blinder_a := clampf((snp - 0.15) * 0.22 * light_scale, 0.0, 0.24)
 		draw_rect(Rect2(Vector2.ZERO, sz), Color(1.0, 0.98, 1.0, blinder_a), true)
 		for b in range(5):
 			var bx := lerpf(sz.x * 0.15, sz.x * 0.85, float(b) / 4.0)
 			draw_circle(Vector2(bx, truss_y + 12.0), 18.0 * snp, Color(1.0, 1.0, 0.95, clampf(snp * 0.55, 0.0, 0.75)))
 
-	# 8. Concert Crowd Silhouettes Jumping at Bottom Edge (Left & Right of Highway)
+	# 8. Concert Crowd Silhouettes at Bottom Edge
 	var crowd_base_y := sz.y * 0.985
 	for i in range(34):
 		var frac := float(i) / 33.0
-		# Leave center clear when not in menu_idle_mode so the guitar highway stays crisp
-		if (not menu_idle_mode) and frac > 0.27 and frac < 0.73:
+		if (not menu_idle_mode) and frac > 0.16 and frac < 0.84:
 			continue
 		var cx := frac * sz.x
 		var phase := _crowd_heads[i]
-		var bounce := absf(sin(_time * 5.2 + phase * TAU)) * (8.0 + kp * 18.0)
-		var head_y := crowd_base_y - 22.0 - bounce
+		var bounce := (absf(sin(_time * 5.2 + phase * TAU)) * (6.0 + kp * 15.0)) if _has_audio_energy else 0.0
+		var head_y := crowd_base_y - 18.0 - bounce
 		var sil_col := Color(0.02, 0.01, 0.04, 0.88)
-		# Shoulders + head
-		draw_circle(Vector2(cx, head_y + 24.0), 18.0, sil_col)
-		draw_circle(Vector2(cx, head_y), 9.5, sil_col)
-		# Raised concert hands on strong beats / high combo
-		if (i + int(_time * 2.0)) % 4 == 0 and (kp > 0.25 or combo_level >= 3 or star_power_active):
-			draw_line(Vector2(cx - 8.0, head_y + 10.0), Vector2(cx - 13.0, head_y - 14.0 - kp * 8.0), sil_col, 3.5)
-			draw_line(Vector2(cx + 8.0, head_y + 10.0), Vector2(cx + 13.0, head_y - 14.0 - kp * 8.0), sil_col, 3.5)
+		draw_circle(Vector2(cx, head_y + 20.0), 15.0, sil_col)
+		draw_circle(Vector2(cx, head_y), 8.0, sil_col)
+		if _has_audio_energy and (i + int(_time * 2.0)) % 4 == 0 and (kp > 0.25 or combo_level >= 3 or star_power_active):
+			draw_line(Vector2(cx - 7.0, head_y + 8.0), Vector2(cx - 11.0, head_y - 12.0 - kp * 7.0), sil_col, 3.0)
+			draw_line(Vector2(cx + 7.0, head_y + 8.0), Vector2(cx + 11.0, head_y - 12.0 - kp * 7.0), sil_col, 3.0)
