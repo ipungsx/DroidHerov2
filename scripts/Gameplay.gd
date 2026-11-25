@@ -183,11 +183,11 @@ func _build_scene_tree() -> void:
 	_progress_bar.add_theme_stylebox_override("fill", pb_fg)
 	_hud_layer.add_child(_progress_bar)
 
-	# Top-Left HD Score & Accuracy Card
+	# Top-Left HD Score & Accuracy Card (Portrait 720px width)
 	var score_card := PanelContainer.new()
 	score_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	score_card.position = Vector2(20, 18)
-	score_card.custom_minimum_size = Vector2(360, 152)
+	score_card.position = Vector2(14, 34)
+	score_card.custom_minimum_size = Vector2(335, 136)
 	score_card.add_theme_stylebox_override("panel", ThemeManager.make_card_style(t["panel"], t["border"], 18, 2, 10))
 	_hud_layer.add_child(score_card)
 
@@ -197,7 +197,7 @@ func _build_scene_tree() -> void:
 	score_card.add_child(sc_vbox)
 
 	var song_title := Label.new()
-	song_title.text = str(GameState.current_song.get("name", "Neon Overdrive")).left(28)
+	song_title.text = str(GameState.current_song.get("name", "Neon Overdrive")).left(22)
 	if ThemeManager.font_semi:
 		song_title.add_theme_font_override("font", ThemeManager.font_semi)
 	song_title.add_theme_font_size_override("font_size", 20)
@@ -208,7 +208,7 @@ func _build_scene_tree() -> void:
 	_lbl_score.text = "0"
 	if ThemeManager.font_display:
 		_lbl_score.add_theme_font_override("font", ThemeManager.font_display)
-	_lbl_score.add_theme_font_size_override("font_size", 46)
+	_lbl_score.add_theme_font_size_override("font_size", 42)
 	_lbl_score.add_theme_color_override("font_color", t["text"])
 	sc_vbox.add_child(_lbl_score)
 
@@ -219,9 +219,10 @@ func _build_scene_tree() -> void:
 	_lbl_section = Label.new()
 	_lbl_section.text = GameState.current_difficulty.to_upper() + _speed_tag()
 	_lbl_section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_lbl_section.clip_text = true
 	if ThemeManager.font_body:
 		_lbl_section.add_theme_font_override("font", ThemeManager.font_body)
-	_lbl_section.add_theme_font_size_override("font_size", 20)
+	_lbl_section.add_theme_font_size_override("font_size", 19)
 	_lbl_section.add_theme_color_override("font_color", t["accent"])
 	meta_hb.add_child(_lbl_section)
 
@@ -229,23 +230,23 @@ func _build_scene_tree() -> void:
 	_lbl_acc.text = "100%"
 	if ThemeManager.font_display:
 		_lbl_acc.add_theme_font_override("font", ThemeManager.font_display)
-	_lbl_acc.add_theme_font_size_override("font_size", 20)
+	_lbl_acc.add_theme_font_size_override("font_size", 19)
 	_lbl_acc.add_theme_color_override("font_color", Color(0.3, 1.0, 0.6))
 	meta_hb.add_child(_lbl_acc)
 
-	# Top-Right Multiplier, Streak, Time & Pause Card
+	# Top-Right Multiplier, Streak, Time & Pause Card (Portrait 720px width)
 	var right_card := PanelContainer.new()
 	right_card.mouse_filter = Control.MOUSE_FILTER_PASS
 	right_card.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	right_card.offset_left = -410
-	right_card.offset_top = 18
-	right_card.offset_right = -20
+	right_card.offset_left = -355
+	right_card.offset_top = 34
+	right_card.offset_right = -14
 	right_card.offset_bottom = 170
 	right_card.add_theme_stylebox_override("panel", ThemeManager.make_card_style(t["panel"], t["accent_2"], 18, 2, 10))
 	_hud_layer.add_child(right_card)
 
 	var rc_hbox := HBoxContainer.new()
-	rc_hbox.add_theme_constant_override("separation", 14)
+	rc_hbox.add_theme_constant_override("separation", 10)
 	rc_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	right_card.add_child(rc_hbox)
 
@@ -253,9 +254,9 @@ func _build_scene_tree() -> void:
 	_lbl_mult.text = "1x"
 	if ThemeManager.font_display:
 		_lbl_mult.add_theme_font_override("font", ThemeManager.font_display)
-	_lbl_mult.add_theme_font_size_override("font_size", 54)
+	_lbl_mult.add_theme_font_size_override("font_size", 46)
 	_lbl_mult.add_theme_color_override("font_color", t["accent"])
-	_lbl_mult.custom_minimum_size = Vector2(105, 0)
+	_lbl_mult.custom_minimum_size = Vector2(84, 0)
 	_lbl_mult.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	rc_hbox.add_child(_lbl_mult)
 
@@ -268,7 +269,7 @@ func _build_scene_tree() -> void:
 	_lbl_combo.text = "0 STREAK"
 	if ThemeManager.font_body:
 		_lbl_combo.add_theme_font_override("font", ThemeManager.font_body)
-	_lbl_combo.add_theme_font_size_override("font_size", 28)
+	_lbl_combo.add_theme_font_size_override("font_size", 24)
 	_lbl_combo.add_theme_color_override("font_color", t["text"])
 	st_vbox.add_child(_lbl_combo)
 
@@ -276,7 +277,7 @@ func _build_scene_tree() -> void:
 	_lbl_time.text = "0:00 / 0:00"
 	if ThemeManager.font_semi:
 		_lbl_time.add_theme_font_override("font", ThemeManager.font_semi)
-	_lbl_time.add_theme_font_size_override("font_size", 19)
+	_lbl_time.add_theme_font_size_override("font_size", 18)
 	_lbl_time.add_theme_color_override("font_color", t["text_dim"])
 	st_vbox.add_child(_lbl_time)
 
@@ -284,57 +285,57 @@ func _build_scene_tree() -> void:
 	_lbl_fps.text = "60 FPS"
 	if ThemeManager.font_semi:
 		_lbl_fps.add_theme_font_override("font", ThemeManager.font_semi)
-	_lbl_fps.add_theme_font_size_override("font_size", 18)
+	_lbl_fps.add_theme_font_size_override("font_size", 17)
 	_lbl_fps.add_theme_color_override("font_color", t["accent_2"])
 	_lbl_fps.visible = bool(GameState.settings.get("show_fps", true))
 	st_vbox.add_child(_lbl_fps)
 
 	_pause_btn = Button.new()
 	_pause_btn.text = "II"
-	_pause_btn.custom_minimum_size = Vector2(74, 74)
+	_pause_btn.custom_minimum_size = Vector2(68, 68)
 	ThemeManager.style_button(_pause_btn, false)
-	_pause_btn.add_theme_font_size_override("font_size", 30)
+	_pause_btn.add_theme_font_size_override("font_size", 28)
 	_pause_btn.pressed.connect(_toggle_pause)
 	rc_hbox.add_child(_pause_btn)
 
-	# Solo Live Banner (Top Center)
+	# Solo Live Banner (Upper Center below top cards)
 	_lbl_solo = Label.new()
 	_lbl_solo.visible = false
 	_lbl_solo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_lbl_solo.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_lbl_solo.offset_left = -200
-	_lbl_solo.offset_top = 14
-	_lbl_solo.offset_right = 200
-	_lbl_solo.offset_bottom = 58
+	_lbl_solo.offset_left = -180
+	_lbl_solo.offset_top = 186
+	_lbl_solo.offset_right = 180
+	_lbl_solo.offset_bottom = 228
 	if ThemeManager.font_display:
 		_lbl_solo.add_theme_font_override("font", ThemeManager.font_display)
 	_lbl_solo.add_theme_font_size_override("font_size", 28)
 	_lbl_solo.add_theme_color_override("font_color", t["star_power"])
 	_hud_layer.add_child(_lbl_solo)
 
-	# Upper-Left Star Power Trigger Button (high above wide bottom fretboard!)
+	# Upper-Left Star Power Trigger Button (neatly above horizon)
 	_sp_btn = Button.new()
-	_sp_btn.text = "STAR POWER\n0%"
+	_sp_btn.text = "STAR\n0%"
 	_sp_btn.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_sp_btn.offset_left = 20
-	_sp_btn.offset_top = 184
-	_sp_btn.offset_right = 215
-	_sp_btn.offset_bottom = 294
+	_sp_btn.offset_left = 14
+	_sp_btn.offset_top = 186
+	_sp_btn.offset_right = 170
+	_sp_btn.offset_bottom = 278
 	ThemeManager.style_button(_sp_btn, true, t["star_power"])
-	_sp_btn.add_theme_font_size_override("font_size", 22)
+	_sp_btn.add_theme_font_size_override("font_size", 21)
 	_sp_btn.pressed.connect(_try_activate_star_power)
 	_hud_layer.add_child(_sp_btn)
 
-	# Upper-Right Whammy Bar Button (high above wide bottom fretboard!)
+	# Upper-Right Whammy Bar Button (neatly above horizon)
 	_whammy_btn = Button.new()
 	_whammy_btn.text = "WHAMMY\nBAR"
 	_whammy_btn.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_whammy_btn.offset_left = -215
-	_whammy_btn.offset_top = 184
-	_whammy_btn.offset_right = -20
-	_whammy_btn.offset_bottom = 294
+	_whammy_btn.offset_left = -170
+	_whammy_btn.offset_top = 186
+	_whammy_btn.offset_right = -14
+	_whammy_btn.offset_bottom = 278
 	ThemeManager.style_button(_whammy_btn, false, t["accent_2"])
-	_whammy_btn.add_theme_font_size_override("font_size", 22)
+	_whammy_btn.add_theme_font_size_override("font_size", 21)
 	_whammy_btn.button_down.connect(func(): _whammy_active = true)
 	_whammy_btn.button_up.connect(func(): _whammy_active = false)
 	_hud_layer.add_child(_whammy_btn)
@@ -593,8 +594,8 @@ func _process(delta: float) -> void:
 	_whammy_phase += delta * 20.0
 	var any_sustain := false
 	var sz := size
-	var strike_y := sz.y * 0.805
-	var strike_hw := sz.x * 0.455
+	var strike_y := sz.y * 0.835
+	var strike_hw := sz.x * 0.478
 	var cx := sz.x * 0.5
 
 	for l in range(5):
@@ -620,24 +621,25 @@ func _process(delta: float) -> void:
 				any_sustain = true
 				var mult := _effective_multiplier()
 				_score += int(round(delta * 140.0 * float(mult)))
-				_hit_flames[l] = maxf(_hit_flames[l], 0.42)
+				_hit_flames[l] = maxf(_hit_flames[l], 0.45)
 				if _whammy_active:
 					_star_power = minf(100.0, _star_power + delta * 11.5)
 				elif bool(sn["sp"]):
 					_star_power = minf(100.0, _star_power + delta * 6.5)
 
-				# Continuous grinding / friction spark spray where sustain ribbon meets raised fret!
+				# Continuous friction sparks spraying from the exact seam between round gem & long ribbon!
 				if _sustain_spark_cd[l] <= 0.0 and sz.x > 10.0:
-					_sustain_spark_cd[l] = 0.024
+					_sustain_spark_cd[l] = 0.020
 					var lf := ((float(l) + 0.5) / 5.0) * 2.0 - 1.0
 					var rx := cx + lf * strike_hw
-					var ry := strike_y - _fret_pop[l] * 18.0
-					var sp_col: Color = Color(0.55, 0.98, 1.0) if _sp_active else ThemeManager.LANE_COLORS[l].lightened(0.42)
+					var lane_w := strike_hw * 2.0 / 5.0
+					var seam_y := strike_y - _fret_pop[l] * 18.0 - lane_w * 0.24
+					var sp_col: Color = Color(0.55, 0.98, 1.0) if _sp_active else Color(1.0, 0.88, 0.35).lerp(ThemeManager.LANE_COLORS[l], 0.35)
 					for s_i in range(2):
 						var side := -1.0 if (s_i == 0) else 1.0
-						var vx := side * randf_range(95.0, 290.0) + randf_range(-40.0, 40.0)
-						var vy := randf_range(-330.0, -135.0)
-						_spawn_spark(rx + randf_range(-10.0, 10.0), ry, vx, vy, randf_range(0.16, 0.28), sp_col)
+						var vx := side * randf_range(115.0, 320.0) + randf_range(-35.0, 35.0)
+						var vy := randf_range(-340.0, -140.0)
+						_spawn_spark(rx + side * randf_range(6.0, 22.0), seam_y, vx, vy, randf_range(0.16, 0.28), sp_col)
 
 	# Update flying spark particles
 	for idx in range(MAX_SPARKS):
@@ -856,15 +858,15 @@ func _pos_to_lane(pos: Vector2) -> int:
 	var sz := size
 	if sz.x <= 1.0 or sz.y <= 1.0:
 		return -1
-	# Wide ergonomic touch zone across the entire lower half of the phone screen
-	if pos.y < sz.y * 0.44:
+	# Wide ergonomic touch zone across the lower half of the portrait smartphone screen
+	if pos.y < sz.y * 0.50:
 		return -1
-	var top_y := sz.y * 0.08
-	var strike_y := sz.y * 0.805
+	var top_y := sz.y * 0.145
+	var strike_y := sz.y * 0.835
 	var bot_y := sz.y * 0.996
-	var top_hw := sz.x * 0.19
-	var strike_hw := sz.x * 0.455
-	var bot_hw := sz.x * 0.494
+	var top_hw := sz.x * 0.255
+	var strike_hw := sz.x * 0.478
+	var bot_hw := sz.x * 0.498
 	var cx := sz.x * 0.5
 	var hw_y := strike_hw
 	if pos.y <= strike_y:
@@ -965,8 +967,8 @@ func _register_hit(note: Dictionary, signed_err_sec: float, record_offset: bool)
 	# Burst a few crisp hit sparks on tight timing
 	if abs_err_sec <= great_w and size.x > 10.0:
 		var lf := ((float(lane) + 0.5) / 5.0) * 2.0 - 1.0
-		var rx := size.x * 0.5 + lf * (size.x * 0.455)
-		var ry := size.y * 0.805 - 16.0
+		var rx := size.x * 0.5 + lf * (size.x * 0.478)
+		var ry := size.y * 0.835 - 18.0
 		var scol: Color = Color(0.55, 0.98, 1.0) if _sp_active else Color(1.0, 0.82, 0.28)
 		for k in range(5):
 			var ang := -PI * 0.5 + randf_range(-0.95, 0.95)
@@ -1143,12 +1145,12 @@ func _project_depth(norm_ahead: float) -> float:
 func _draw_highway() -> void:
 	var sz := size
 	var t := ThemeManager.get_theme_data()
-	var top_y := sz.y * 0.08
-	var strike_y := sz.y * 0.805
+	var top_y := sz.y * 0.145
+	var strike_y := sz.y * 0.835
 	var bot_y := sz.y * 0.996
-	var top_hw := sz.x * 0.19
-	var strike_hw := sz.x * 0.455
-	var bot_hw := sz.x * 0.494
+	var top_hw := sz.x * 0.255
+	var strike_hw := sz.x * 0.478
+	var bot_hw := sz.x * 0.498
 	var cx := sz.x * 0.5
 
 	# 1. HD Textured Perspective Fretboard Deck (Carbon / Rosewood / Obsidian)
@@ -1392,30 +1394,72 @@ func _draw_highway() -> void:
 				mod_col
 			)
 
-	# 8. Popped-Up ("Timbul") 3D Raised Frets + Held Sustain Grinding Arc!
+	# 8. Popped-Up ("Timbul") 3D Raised Frets + Clamped Round Gem & Friction Seam with Long Sustain!
 	for l in range(5):
 		if _fret_pop[l] > 0.02:
 			_draw_fret_3d(l, cx, strike_y, strike_hw)
 
-		# Active Sustain Grinding Contact Ring & Electric Friction Glow!
-		if _active_sustains[l] != null:
+		var sn = _active_sustains[l]
+		if sn != null:
 			var lf := ((float(l) + 0.5) / 5.0) * 2.0 - 1.0
 			var rx := cx + lf * strike_hw
 			var ry := strike_y - _fret_pop[l] * 18.0
-			var rw := (strike_hw * 2.0 / 5.0) * 0.43
-			var rh := rw * 0.50
-			var scol: Color = t["star_power"] if _sp_active else ThemeManager.LANE_COLORS[l]
-			var grind_pulse := 0.85 + 0.25 * sin(_song_time * 48.0 + float(l) * 1.7)
+			var lane_w := strike_hw * 2.0 / 5.0
+			var gw := lane_w * 0.88
+			var gh := gw * 0.64
+			var scol: Color = t["star_power"] if (_sp_active or bool(sn["sp"])) else ThemeManager.LANE_COLORS[l]
+			var grind_pulse := 0.86 + 0.24 * sin(_song_time * 54.0 + float(l) * 1.9)
+			# High-frequency friction micro-vibration on the clamped round gem
+			var vib_x := sin(_song_time * 78.0 + float(l)) * (3.8 if _whammy_active else 2.2)
+			var vib_y := cos(_song_time * 66.0 + float(l)) * 1.4
+
+			# 8a. Keep the Round 3D Jewel Note Gem ("not bulat") visibly locked & vibrating on the fret!
+			var held_tex: Texture2D = null
+			if _sp_active or bool(sn["sp"]):
+				held_tex = HDAssets.gem_star_hopo if (bool(sn["hopo"]) or bool(sn["tap"])) else HDAssets.gem_star
+			elif l >= 0 and l < HDAssets.gem_strum.size():
+				if bool(sn["tap"]):
+					held_tex = HDAssets.gem_tap[l]
+				elif bool(sn["hopo"]):
+					held_tex = HDAssets.gem_hopo[l]
+				else:
+					held_tex = HDAssets.gem_strum[l]
+			if held_tex != null:
+				_highway_canvas.draw_texture_rect(
+					held_tex,
+					Rect2(rx + vib_x - gw * 0.5, ry + vib_y - gh * 0.52, gw, gh),
+					false,
+					Color(1.12, 1.12, 1.12, 1.0)
+				)
+
+			# 8b. Vivid Friction / Grinding Contact Effect right at the seam between Round Gem & Long Ribbon!
+			var seam_y := ry - gh * 0.28
 			if HDAssets.radial_glow_tex != null:
 				_highway_canvas.draw_texture_rect(
 					HDAssets.radial_glow_tex,
-					Rect2(rx - rw * 1.25, ry - rh * 1.25, rw * 2.5, rh * 2.5),
+					Rect2(rx - gw * 0.58, seam_y - gh * 0.45, gw * 1.16, gh * 0.90),
 					false,
-					Color(scol.r, scol.g, scol.b, 0.55 * grind_pulse)
+					Color(scol.r, scol.g, scol.b, 0.65 * grind_pulse)
 				)
-			# Bright vibrating friction contact core where the long note grinds on the fret
-			_draw_ellipse(Vector2(rx, ry), rw * 0.52 * grind_pulse, rh * 0.52 * grind_pulse, Color(1.0, 0.96, 0.82, 0.92))
-			_draw_ellipse_arc(Vector2(rx, ry), rw * (0.76 + 0.12 * sin(_song_time * 36.0)), rh * 0.78, Color.WHITE, 3.2)
+			# White-hot friction pinch seam across the upper rim of the round gem
+			var seam_w := gw * (0.34 + 0.08 * sin(_song_time * 62.0))
+			_highway_canvas.draw_line(
+				Vector2(rx - seam_w, seam_y),
+				Vector2(rx + seam_w, seam_y),
+				Color(1.0, 0.96, 0.80, 0.96),
+				5.2
+			)
+			# Sideways friction glare flares shooting left & right along the contact boundary
+			var flare_w := gw * (0.48 + 0.14 * absf(sin(_song_time * 48.0 + float(l))))
+			_highway_canvas.draw_line(
+				Vector2(rx - flare_w, seam_y - 2.0),
+				Vector2(rx + flare_w, seam_y - 2.0),
+				Color(1.0, 0.78, 0.22, 0.78) if not _sp_active else Color(0.6, 0.98, 1.0, 0.85),
+				2.8
+			)
+			# Bright hot friction core + vibrating shock ring at contact point
+			_draw_ellipse(Vector2(rx + vib_x * 0.5, seam_y), gw * 0.22 * grind_pulse, gh * 0.16 * grind_pulse, Color(1.0, 0.98, 0.90, 0.96))
+			_draw_ellipse_arc(Vector2(rx, seam_y), gw * 0.34 * grind_pulse, gh * 0.24 * grind_pulse, Color.WHITE, 2.8)
 
 	# 9. Expanding Hit Shockwave Rings, Small Crisp Hit Flames, & Flying Friction Sparks
 	for l in range(5):
@@ -1547,14 +1591,15 @@ func _draw_fret_3d(l: int, cx: float, strike_y: float, strike_hw: float) -> void
 	_draw_ellipse_arc(top_c, w * 0.98, h * 0.98, rim_col, 5.0 if pop > 0.25 else 3.6)
 	_draw_ellipse(top_c - Vector2(0.0, h * 0.20), w * 0.52, h * 0.40, Color(1.0, 1.0, 1.0, 0.18 + 0.65 * pop))
 
-func _draw_upper_side_meters(cx: float, top_y: float, strike_y: float, top_hw: float, strike_hw: float, t: Dictionary) -> void:
-	# Tucked parallel to upper highway rails (y: 12%..48%) so the wide bottom fretboard stays 100% open!
-	var y_hi := lerpf(top_y, strike_y, 0.06)
-	var y_lo := lerpf(top_y, strike_y, 0.50)
-	var bar_h := y_lo - y_hi
+func _draw_upper_side_meters(_cx: float, _top_y: float, _strike_y: float, _top_hw: float, _strike_hw: float, t: Dictionary) -> void:
+	# Tucked neatly along upper left & right screen edges below Star Power / Whammy buttons
+	var sz := size
+	var y_hi := 298.0
+	var y_lo := minf(sz.y * 0.46, 620.0)
+	var bar_h := maxf(120.0, y_lo - y_hi)
 
 	# Upper-Left Segmented Rock Meter
-	var rmx := cx - lerpf(top_hw, strike_hw, 0.50) - 34.0
+	var rmx := 26.0
 	_highway_canvas.draw_rect(Rect2(rmx - 10, y_hi, 20, bar_h), Color(0.04, 0.04, 0.08, 0.90), true)
 	var segs := 14
 	var rm_active := int(round((_rock_meter / 100.0) * float(segs)))
@@ -1567,7 +1612,7 @@ func _draw_upper_side_meters(cx: float, top_y: float, strike_y: float, top_hw: f
 	_highway_canvas.draw_rect(Rect2(rmx - 10, y_hi, 20, bar_h), Color(1, 1, 1, 0.35), false, 2.0)
 
 	# Upper-Right Segmented Star Power Meter
-	var spx := cx + lerpf(top_hw, strike_hw, 0.50) + 34.0
+	var spx := sz.x - 26.0
 	_highway_canvas.draw_rect(Rect2(spx - 10, y_hi, 20, bar_h), Color(0.04, 0.04, 0.08, 0.90), true)
 	var sp_c: Color = t["star_power"]
 	var sp_active_segs := int(round((_star_power / 100.0) * float(segs)))

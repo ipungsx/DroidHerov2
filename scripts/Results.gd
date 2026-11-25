@@ -16,10 +16,10 @@ func _ready() -> void:
 
 	var margin := MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 44)
-	margin.add_theme_constant_override("margin_right", 44)
-	margin.add_theme_constant_override("margin_top", 28)
-	margin.add_theme_constant_override("margin_bottom", 28)
+	margin.add_theme_constant_override("margin_left", 28)
+	margin.add_theme_constant_override("margin_right", 28)
+	margin.add_theme_constant_override("margin_top", 50)
+	margin.add_theme_constant_override("margin_bottom", 38)
 	add_child(margin)
 
 	var card := PanelContainer.new()
@@ -36,27 +36,29 @@ func _ready() -> void:
 	var is_fc := bool(res.get("fc", false))
 	var is_new := bool(res.get("new_best", false))
 	var banner := Label.new()
-	banner.text = "★ FULL COMBO! SEMPURNA! ★" if is_fc else ("★ REKOR BARU! KONSER SELESAI ★" if is_new else "KONSER SELESAI")
+	banner.text = "★ FULL COMBO! ★" if is_fc else ("★ REKOR BARU! ★" if is_new else "KONSER SELESAI")
 	banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if ThemeManager.font_display:
 		banner.add_theme_font_override("font", ThemeManager.font_display)
-	banner.add_theme_font_size_override("font_size", 40)
+	banner.add_theme_font_size_override("font_size", 42)
 	banner.add_theme_color_override("font_color", t["star_power"] if is_fc else t["accent"])
 	root_vb.add_child(banner)
 
-	# Split Content: Left Rank Emblem & Song + Right Breakdown & Timing Tip
-	var split := HBoxContainer.new()
-	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	split.add_theme_constant_override("separation", 34)
-	root_vb.add_child(split)
+	var song_lbl := Label.new()
+	song_lbl.text = "%s\n%s  [%s]" % [
+		str(song.get("name", "Song")),
+		str(song.get("artist", "Artist")),
+		str(res.get("difficulty", "Expert")).to_upper()
+	]
+	song_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	song_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if ThemeManager.font_body:
+		song_lbl.add_theme_font_override("font", ThemeManager.font_body)
+	song_lbl.add_theme_font_size_override("font_size", 26)
+	song_lbl.add_theme_color_override("font_color", t["text_dim"])
+	root_vb.add_child(song_lbl)
 
-	var left_vb := VBoxContainer.new()
-	left_vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left_vb.size_flags_stretch_ratio = 0.85
-	left_vb.alignment = BoxContainer.ALIGNMENT_CENTER
-	left_vb.add_theme_constant_override("separation", 10)
-	split.add_child(left_vb)
-
+	# Giant Rank + Stars + Score Block
 	var acc := float(res.get("accuracy", 0.0))
 	var rank_letter := "S" if acc >= 95.0 else ("A" if acc >= 86.0 else ("B" if acc >= 75.0 else ("C" if acc >= 60.0 else "D")))
 	var rank_col: Color = t["star_power"] if rank_letter == "S" else (Color(0.25, 1.0, 0.55) if rank_letter == "A" else Color(1.0, 0.84, 0.22))
@@ -66,57 +68,36 @@ func _ready() -> void:
 	rank_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if ThemeManager.font_display:
 		rank_lbl.add_theme_font_override("font", ThemeManager.font_display)
-	rank_lbl.add_theme_font_size_override("font_size", 118)
+	rank_lbl.add_theme_font_size_override("font_size", 142)
 	rank_lbl.add_theme_color_override("font_color", rank_col)
-	left_vb.add_child(rank_lbl)
+	root_vb.add_child(rank_lbl)
 
 	var stars := int(res.get("stars", 3))
 	var star_lbl := Label.new()
 	star_lbl.text = "★".repeat(stars) + "☆".repeat(5 - stars)
 	star_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	star_lbl.add_theme_font_size_override("font_size", 48)
+	star_lbl.add_theme_font_size_override("font_size", 58)
 	star_lbl.add_theme_color_override("font_color", Color(1.0, 0.86, 0.20) if not is_fc else t["star_power"])
-	left_vb.add_child(star_lbl)
+	root_vb.add_child(star_lbl)
 
 	var score_lbl := Label.new()
 	score_lbl.text = str(int(res.get("score", 0))) + " PTS"
 	score_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if ThemeManager.font_display:
 		score_lbl.add_theme_font_override("font", ThemeManager.font_display)
-	score_lbl.add_theme_font_size_override("font_size", 44)
+	score_lbl.add_theme_font_size_override("font_size", 50)
 	score_lbl.add_theme_color_override("font_color", t["text"])
-	left_vb.add_child(score_lbl)
+	root_vb.add_child(score_lbl)
 
-	var song_lbl := Label.new()
-	song_lbl.text = "%s — %s  [%s]" % [
-		str(song.get("name", "Song")),
-		str(song.get("artist", "Artist")),
-		str(res.get("difficulty", "Expert")).to_upper()
-	]
-	song_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	song_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	if ThemeManager.font_body:
-		song_lbl.add_theme_font_override("font", ThemeManager.font_body)
-	song_lbl.add_theme_font_size_override("font_size", 23)
-	song_lbl.add_theme_color_override("font_color", t["text_dim"])
-	left_vb.add_child(song_lbl)
-
-	# Right Stat Rows & Timing Assistant
-	var right_vb := VBoxContainer.new()
-	right_vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	right_vb.size_flags_stretch_ratio = 1.15
-	right_vb.alignment = BoxContainer.ALIGNMENT_CENTER
-	right_vb.add_theme_constant_override("separation", 12)
-	split.add_child(right_vb)
-
+	# Breakdown Rows
 	var hit_cnt := int(res.get("perfect", 0)) + int(res.get("great", 0)) + int(res.get("good", 0))
 	var tot_cnt := maxi(hit_cnt + int(res.get("missed", 0)), int(res.get("total_notes", 0)))
-	_add_stat_row(right_vb, "NOT KENA", "%d / %d  (%.1f%%)" % [hit_cnt, tot_cnt, acc], t["accent"], t)
-	_add_stat_row(right_vb, "STREAK TERBAIK", str(int(res.get("max_streak", 0))) + "x", t["accent_2"], t)
+	_add_stat_row(root_vb, "NOT KENA", "%d / %d (%.1f%%)" % [hit_cnt, tot_cnt, acc], t["accent"], t)
+	_add_stat_row(root_vb, "STREAK TERBAIK", str(int(res.get("max_streak", 0))) + "x", t["accent_2"], t)
 	_add_stat_row(
-		right_vb,
-		"PERFECT / GREAT / GOOD / MISS",
-		"%d  /  %d  /  %d  /  %d" % [
+		root_vb,
+		"P / GR / GD / M",
+		"%d / %d / %d / %d" % [
 			int(res.get("perfect", 0)),
 			int(res.get("great", 0)),
 			int(res.get("good", 0)),
@@ -126,70 +107,73 @@ func _ready() -> void:
 		t
 	)
 	if int(res.get("solo_bonus", 0)) > 0:
-		_add_stat_row(right_vb, "SOLO BONUS", "+" + str(int(res.get("solo_bonus", 0))) + " PTS", t["star_power"], t)
+		_add_stat_row(root_vb, "SOLO BONUS", "+" + str(int(res.get("solo_bonus", 0))) + " PTS", t["star_power"], t)
 
-	# Smart Timing Offset Suggestion (if median timing error >= 8 ms across >= 10 hits)
+	# Smart Timing Offset Assistant
 	var samples := int(res.get("hit_samples", 0))
 	var med_ms := float(res.get("median_offset_ms", 0.0))
 	if samples >= 10 and absf(med_ms) >= 8.0:
 		var fix_delta: float = roundf(med_ms / 5.0) * 5.0
 		var dir_word := "terlambat" if med_ms > 0.0 else "lebih cepat"
 		var tip_btn := Button.new()
-		tip_btn.text = "⚡ Rata-rata %d ms %s — Ketuk untuk Sesuaikan Timing (%+d ms)" % [int(round(absf(med_ms))), dir_word, int(fix_delta)]
-		tip_btn.custom_minimum_size = Vector2(0, 62)
+		tip_btn.text = "⚡ %d ms %s — Ketuk Fix (%+d ms)" % [int(round(absf(med_ms))), dir_word, int(fix_delta)]
+		tip_btn.custom_minimum_size = Vector2(0, 74)
 		ThemeManager.style_button(tip_btn, false, Color(1.0, 0.78, 0.20))
-		tip_btn.add_theme_font_size_override("font_size", 21)
+		tip_btn.add_theme_font_size_override("font_size", 24)
 		tip_btn.pressed.connect(func():
 			GameState.play_click()
 			var cur_off := float(GameState.settings.get("audio_offset_ms", 0.0))
 			var next_off := clampf(cur_off + fix_delta, -150.0, 150.0)
 			GameState.settings["audio_offset_ms"] = next_off
 			GameState.save_data()
-			tip_btn.text = "✓ Offset Audio Disesuaikan ke %d ms" % int(round(next_off))
+			tip_btn.text = "✓ Offset Disesuaikan ke %d ms" % int(round(next_off))
 			tip_btn.disabled = true
 		)
-		right_vb.add_child(tip_btn)
+		root_vb.add_child(tip_btn)
 
-	# Bottom Smartphone Action Row
-	var btn_row := HBoxContainer.new()
-	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	btn_row.add_theme_constant_override("separation", 20)
-	root_vb.add_child(btn_row)
+	var sp := Control.new()
+	sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root_vb.add_child(sp)
+
+	# Bottom Vertical Smartphone Action Buttons
+	var pair_hb := HBoxContainer.new()
+	pair_hb.add_theme_constant_override("separation", 14)
+	root_vb.add_child(pair_hb)
 
 	var btn_retry := Button.new()
 	btn_retry.text = "↻  MAIN LAGI"
 	btn_retry.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn_retry.custom_minimum_size = Vector2(0, 78)
+	btn_retry.custom_minimum_size = Vector2(0, 88)
 	ThemeManager.style_button(btn_retry, false)
 	btn_retry.pressed.connect(func():
 		GameState.play_click()
 		get_tree().change_scene_to_file("res://scenes/Gameplay.tscn")
 	)
-	btn_row.add_child(btn_retry)
+	pair_hb.add_child(btn_retry)
 
 	var btn_diff := Button.new()
-	btn_diff.text = "🎚  GANTI LEVEL"
+	btn_diff.text = "🎚  LEVEL"
 	btn_diff.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn_diff.custom_minimum_size = Vector2(0, 78)
+	btn_diff.custom_minimum_size = Vector2(0, 88)
 	ThemeManager.style_button(btn_diff, false, t["accent_2"])
 	btn_diff.pressed.connect(func():
 		GameState.play_click()
 		GameState.open_screen_on_menu = 2
 		get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
 	)
-	btn_row.add_child(btn_diff)
+	pair_hb.add_child(btn_diff)
 
 	var btn_songs := Button.new()
-	btn_songs.text = "▶  DAFTAR LAGU"
-	btn_songs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn_songs.custom_minimum_size = Vector2(0, 78)
+	btn_songs.text = "▶   DAFTAR LAGU"
+	btn_songs.custom_minimum_size = Vector2(0, 96)
 	ThemeManager.style_button(btn_songs, true, t["accent"])
+	btn_songs.add_theme_font_size_override("font_size", 32)
 	btn_songs.pressed.connect(func():
 		GameState.play_click()
 		GameState.open_screen_on_menu = 1
 		get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
 	)
-	btn_row.add_child(btn_songs)
+	root_vb.add_child(btn_songs)
 
 	GameState.play_star_sfx()
 
@@ -206,7 +190,7 @@ func _add_stat_row(parent: Control, label_txt: String, val_txt: String, val_col:
 	k.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if ThemeManager.font_semi:
 		k.add_theme_font_override("font", ThemeManager.font_semi)
-	k.add_theme_font_size_override("font_size", 22)
+	k.add_theme_font_size_override("font_size", 24)
 	k.add_theme_color_override("font_color", t["text_dim"])
 	hb.add_child(k)
 
@@ -214,6 +198,6 @@ func _add_stat_row(parent: Control, label_txt: String, val_txt: String, val_col:
 	v.text = val_txt
 	if ThemeManager.font_display:
 		v.add_theme_font_override("font", ThemeManager.font_display)
-	v.add_theme_font_size_override("font_size", 25)
+	v.add_theme_font_size_override("font_size", 26)
 	v.add_theme_color_override("font_color", val_col)
 	hb.add_child(v)
