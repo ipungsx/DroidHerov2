@@ -258,19 +258,18 @@ func _draw() -> void:
 			var bx := lerpf(sz.x * 0.15, sz.x * 0.85, float(b) / 4.0)
 			draw_circle(Vector2(bx, truss_y + 12.0), 18.0 * snp, Color(1.0, 1.0, 0.95, clampf(snp * 0.55, 0.0, 0.75)))
 
-	# 8. Concert Crowd Silhouettes at Bottom Edge
-	var crowd_base_y := sz.y * 0.985
-	for i in range(34):
-		var frac := float(i) / 33.0
-		if (not menu_idle_mode) and frac > 0.16 and frac < 0.84:
-			continue
-		var cx := frac * sz.x
-		var phase := _crowd_heads[i]
-		var bounce := (absf(sin(_time * 5.2 + phase * TAU)) * (6.0 + kp * 15.0)) if _has_audio_energy else 0.0
-		var head_y := crowd_base_y - 18.0 - bounce
-		var sil_col := Color(0.02, 0.01, 0.04, 0.88)
-		draw_circle(Vector2(cx, head_y + 20.0), 15.0, sil_col)
-		draw_circle(Vector2(cx, head_y), 8.0, sil_col)
-		if _has_audio_energy and (i + int(_time * 2.0)) % 4 == 0 and (kp > 0.25 or combo_level >= 3 or star_power_active):
-			draw_line(Vector2(cx - 7.0, head_y + 8.0), Vector2(cx - 11.0, head_y - 12.0 - kp * 7.0), sil_col, 3.0)
-			draw_line(Vector2(cx + 7.0, head_y + 8.0), Vector2(cx + 11.0, head_y - 12.0 - kp * 7.0), sil_col, 3.0)
+	# 8. Concert Crowd Silhouettes at Bottom Edge (shown on wide menu stage)
+	if menu_idle_mode:
+		var crowd_base_y := sz.y * 0.985
+		for i in range(34):
+			var frac := float(i) / 33.0
+			var cx := frac * sz.x
+			var phase := _crowd_heads[i]
+			var bounce := (absf(sin(_time * 5.2 + phase * TAU)) * (8.0 + kp * 18.0)) if _has_audio_energy else 0.0
+			var head_y := crowd_base_y - 22.0 - bounce
+			var sil_col := Color(0.02, 0.01, 0.04, 0.88)
+			draw_circle(Vector2(cx, head_y + 24.0), 19.0, sil_col)
+			draw_circle(Vector2(cx, head_y), 10.0, sil_col)
+			if _has_audio_energy and (i + int(_time * 2.0)) % 4 == 0 and (kp > 0.25 or combo_level >= 3 or star_power_active):
+				draw_line(Vector2(cx - 8.0, head_y + 10.0), Vector2(cx - 13.0, head_y - 15.0 - kp * 8.0), sil_col, 3.5)
+				draw_line(Vector2(cx + 8.0, head_y + 10.0), Vector2(cx + 13.0, head_y - 15.0 - kp * 8.0), sil_col, 3.5)

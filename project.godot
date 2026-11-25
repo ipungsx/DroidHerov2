@@ -12,7 +12,7 @@ config_version=5
 
 config/name="DroidHeroV2"
 config/description="60fps Guitar Hero style rhythm game for Android powered by enchor.us charts and drum-reactive concert lighting"
-config/version="2.1.0"
+config/version="2.2.0"
 run/main_scene="res://scenes/MainMenu.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 run/max_fps=60
@@ -26,13 +26,14 @@ driver/output_latency=15
 [autoload]
 
 ThemeManager="*res://scripts/ThemeManager.gd"
+HDAssets="*res://scripts/HDAssets.gd"
 GameState="*res://scripts/GameState.gd"
 EnchorClient="*res://scripts/EnchorClient.gd"
 
 [display]
 
-window/size/viewport_width=1000
-window/size/viewport_height=450
+window/size/viewport_width=1600
+window/size/viewport_height=720
 window/size/mode=3
 window/handheld/orientation=6
 window/stretch/mode="canvas_items"
@@ -49,4 +50,5 @@ pointing/emulate_mouse_from_touch=true
 renderer/rendering_method="mobile"
 renderer/rendering_method.mobile="gl_compatibility"
 textures/vram_compression/import_etc2_astc=true
-anti_aliasing/quality/msaa_2d=1
+textures/canvas_textures/default_texture_filter=2
+anti_aliasing/quality/msaa_2d=2

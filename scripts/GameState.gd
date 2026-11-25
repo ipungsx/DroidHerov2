@@ -5,6 +5,9 @@ const SONGS_DIR := "user://songs"
 
 var settings: Dictionary = {
 	"theme": "neon_cyber",
+	"board_style": "carbon",  # carbon, rosewood, obsidian
+	"hit_window": "normal",   # strict, normal, lenient
+	"haptics": true,          # subtle smartphone vibration on miss / star power
 	"note_speed": 1.0,        # 0.7x .. 1.8x highway scroll speed
 	"audio_offset_ms": 0.0,   # -150 .. +150 ms calibration
 	"no_fail": false,         # Practice / casual mode without rock-out fail
@@ -24,6 +27,7 @@ var current_difficulty: String = "Expert" # Easy, Medium, Hard, Expert
 var practice_speed: float = 1.0           # 0.5, 0.75, 1.0
 var practice_start_sec: float = 0.0
 var last_result: Dictionary = {}
+var open_screen_on_menu: int = 0          # 0=Home, 1=SongList, 2=Difficulty
 
 #Synthesized UI/SFX players
 var _sfx_player: AudioStreamPlayer
@@ -93,6 +97,17 @@ func _gen_tone_wav(f0: float, f1: float, dur: float, amp: float, noisy: bool) ->
 	wav.stereo = false
 	wav.data = data
 	return wav
+
+func trigger_haptic(duration_ms: int = 25) -> void:
+	if bool(settings.get("haptics", true)):
+		Input.vibrate_handheld(duration_ms)
+
+func get_total_stars() -> int:
+	var total := 0
+	for k in highscores.keys():
+		var d: Dictionary = highscores[k]
+		total += int(d.get("stars", 0))
+	return total
 
 func play_click() -> void:
 	if settings.get("sfx_volume", 0.85) <= 0.01:
