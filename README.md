@@ -1,6 +1,6 @@
 # DroidHeroV2
 
-**DroidHeroV2** is a 60 FPS, 5-fret Guitar Hero / Clone Hero style rhythm game built for **Android** using **Godot Engine 4.7**. Designed natively for **Portrait HD (`720×1600`)** smartphones, it features direct in-game chart browsing and downloads from **enchor.us**, ray-lit 3D cut-jewel note gems, tactile raised 3D frets with sustain friction sparks, customizable concert arena themes, and drum-reactive stage lighting.
+**DroidHeroV2** is a 60 FPS, 5-fret guitar rhythm game built for **Android** using **Godot Engine 4.7**. Designed natively for **Portrait HD (`720×1600`)** smartphones, it features community `.sng` / `.chart` / `.mid` support with optional in-game browsing via **enchor.us**, ray-lit 3D cut-jewel note gems, tactile raised 3D frets with sustain friction sparks, customizable concert arena themes, 6 background music visualizers, and drum-reactive stage lighting.
 
 ---
 
@@ -124,4 +124,8 @@ DroidHerov2/
 - **OpusGdextension** by Joy-less — MIT License (included under `addons/OpusGdextension/LICENSE.md`)
 - **Orbitron & Rajdhani Fonts** — SIL Open Font License (OFL)
 - Community charts and metadata provided via **[enchor.us](https://www.enchor.us/)**. All song charts belong to their respective artists and community charters.
-- *Legal Notice:* DroidHeroV2 is an independent rhythm game created by **ipungsx** and is not affiliated with or endorsed by Activision, RedOctane, or Harmonix.
+
+### External Content & Legal Disclaimer
+- **No Hosted Copyrighted Audio:** This repository does **not** host, bundle, or distribute any copyrighted commercial music or third-party charts. The only bundled audio file (`assets/bundled/neon_overdrive.wav`) is an original synthesized track created for this project.
+- **Third-Party Services:** The optional in-game search browser connects directly to the public **[enchor.us](https://www.enchor.us/)** community API. DroidHeroV2 is not affiliated with `enchor.us`, and users are solely responsible for ensuring they have the legal right to download or import any third-party charts or audio files.
+- **Trademark Notice:** DroidHeroV2 is an independent, original 5-fret rhythm game created by **ipungsx** and is not affiliated with, endorsed by, or sponsored by Activision, RedOctane, Harmonix, or any third-party trademark holders. All trademarks belong to their respective owners.

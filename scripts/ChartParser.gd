@@ -1,7 +1,7 @@
 class_name ChartParser
 extends RefCounted
 
-# Parses Clone Hero / Guitar Hero notes.chart and notes.mid into unified time-indexed data:
+# Parses standard 5-fret notes.chart and notes.mid files into unified time-indexed data:
 # {
 #   "resolution": 192,
 #   "offset": 0.0,
@@ -312,7 +312,7 @@ static func _finalize_chart(
 		if raw_tracks["Easy"].is_empty():
 			raw_tracks["Easy"] = _downchart(raw_tracks["Medium"], 2, resolution * 2)
 
-	var hopo_thresh := int(65.0 * float(resolution) / 192.0) # Standard 1/12th+1 Clone Hero HOPO threshold
+	var hopo_thresh := int(65.0 * float(resolution) / 192.0) # Standard 1/12th+1 HOPO threshold
 	var sustain_min := int(float(resolution) * 0.35)
 	var tracks := {}
 	var max_tick := resolution * 16

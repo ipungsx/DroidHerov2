@@ -168,7 +168,7 @@ static func _load_sng_package(sng_path: String) -> Dictionary:
 	var streams: Array[AudioStream] = []
 	var album_tex: Texture2D = null
 
-	# Priority stems so full multitrack Clone Hero songs play complete band + guitar + drums!
+	# Priority stems so multitrack .sng packages play complete band + guitar + drums!
 	var stem_prefixes := ["song.", "guitar.", "drums.", "drums_1.", "drums_2.", "drums_3.", "drums_4.", "bass.", "rhythm.", "keys.", "vocals."]
 
 	for fi in hdr["files"]:

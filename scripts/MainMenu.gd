@@ -1719,7 +1719,7 @@ func _build_file_importer() -> void:
 	_file_dialog = FileDialog.new()
 	_file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
 	_file_dialog.access = FileDialog.ACCESS_FILESYSTEM
-	_file_dialog.filters = PackedStringArray(["*.sng ; Clone Hero SNG Package", "*.zip ; Song Archive ZIP"])
+	_file_dialog.filters = PackedStringArray(["*.sng ; SNG Song Package", "*.zip ; Song Archive ZIP"])
 	_file_dialog.file_selected.connect(func(path: String):
 		if path.to_lower().ends_with(".sng"):
 			var dest := GameState.SONGS_DIR + "/" + path.get_file()
