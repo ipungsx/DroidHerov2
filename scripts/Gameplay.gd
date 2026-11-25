@@ -89,7 +89,7 @@ var _spark_col: PackedColorArray = PackedColorArray()
 var _spark_head: int = 0
 
 # Judgement & Solo feedback
-var _judge_text: String = "SIAP ROCK!"
+var _judge_text: String = "GET READY!"
 var _judge_col: Color = Color.CYAN
 var _judge_timer: float = 1.4
 var _current_section: String = "Intro"
@@ -360,7 +360,7 @@ func _build_overlays(t: Dictionary) -> void:
 	_pause_panel.add_child(pv)
 
 	var ptitle := Label.new()
-	ptitle.text = "PERMAINAN DIJEDA"
+	ptitle.text = "STAGE PAUSED"
 	ptitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if ThemeManager.font_display:
 		ptitle.add_theme_font_override("font", ThemeManager.font_display)
@@ -369,21 +369,21 @@ func _build_overlays(t: Dictionary) -> void:
 	pv.add_child(ptitle)
 
 	var btn_resume := Button.new()
-	btn_resume.text = "▶  LANJUTKAN MAIN"
+	btn_resume.text = "▶  RESUME SHOW"
 	btn_resume.custom_minimum_size = Vector2(0, 76)
 	ThemeManager.style_button(btn_resume, true)
 	btn_resume.pressed.connect(_toggle_pause)
 	pv.add_child(btn_resume)
 
 	var btn_restart := Button.new()
-	btn_restart.text = "↻  ULANGI LAGU"
+	btn_restart.text = "↻  RESTART SONG"
 	btn_restart.custom_minimum_size = Vector2(0, 74)
 	ThemeManager.style_button(btn_restart, false)
 	btn_restart.pressed.connect(func(): get_tree().reload_current_scene())
 	pv.add_child(btn_restart)
 
 	var btn_quit := Button.new()
-	btn_quit.text = "◀  KEMBALI KE DAFTAR LAGU"
+	btn_quit.text = "◀  BACK TO SONG LIST"
 	btn_quit.custom_minimum_size = Vector2(0, 74)
 	ThemeManager.style_button(btn_quit, false, t["accent_2"])
 	btn_quit.pressed.connect(func():
@@ -411,7 +411,7 @@ func _build_overlays(t: Dictionary) -> void:
 	_fail_panel.add_child(fv)
 
 	var ftitle := Label.new()
-	ftitle.text = "ROCK METER HABIS!"
+	ftitle.text = "SONG FAILED!"
 	ftitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if ThemeManager.font_display:
 		ftitle.add_theme_font_override("font", ThemeManager.font_display)
@@ -420,7 +420,7 @@ func _build_overlays(t: Dictionary) -> void:
 	fv.add_child(ftitle)
 
 	var fsub := Label.new()
-	fsub.text = "Aktifkan No-Fail atau mode latihan 75% untuk berlatih bagian sulit."
+	fsub.text = "Rock Meter depleted! Try No-Fail mode or Practice 75%."
 	fsub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	fsub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	if ThemeManager.font_body:
@@ -429,14 +429,14 @@ func _build_overlays(t: Dictionary) -> void:
 	fv.add_child(fsub)
 
 	var btn_retry := Button.new()
-	btn_retry.text = "↻  COBA LAGI"
+	btn_retry.text = "↻  TRY AGAIN"
 	btn_retry.custom_minimum_size = Vector2(0, 76)
 	ThemeManager.style_button(btn_retry, true, Color(1.0, 0.28, 0.35))
 	btn_retry.pressed.connect(func(): get_tree().reload_current_scene())
 	fv.add_child(btn_retry)
 
 	var btn_fquit := Button.new()
-	btn_fquit.text = "◀  PILIH LAGU LAIN"
+	btn_fquit.text = "◀  EXIT TO SONG LIST"
 	btn_fquit.custom_minimum_size = Vector2(0, 72)
 	ThemeManager.style_button(btn_fquit, false)
 	btn_fquit.pressed.connect(func():
@@ -531,7 +531,7 @@ func _process(delta: float) -> void:
 		_stage.music_playing = false
 		return
 
-	# Smooth YARG-style real-time clock with gentle <=1.5% slew toward audio position (zero jitter!)
+	# Smooth real-time clock with gentle <=1.5% slew toward audio position (zero jitter)
 	var start_target := maxf(0.0, GameState.practice_start_sec)
 	if not _started_audio:
 		_song_time += delta * _speed_scale
@@ -1033,7 +1033,7 @@ func _update_sp_button() -> void:
 		_sp_btn.modulate = Color(1.2, 1.2, 1.2, 1.0)
 	elif _star_power >= 50.0:
 		var pulse := 0.88 + 0.18 * sin(_song_time * 9.0)
-		_sp_btn.text = "⚡ AKTIFKAN!\n" + str(pct) + "%"
+		_sp_btn.text = "⚡ DEPLOY!\n" + str(pct) + "%"
 		_sp_btn.modulate = Color(pulse, 1.0, 1.0, 1.0)
 	else:
 		_sp_btn.text = "STAR POWER\n" + str(pct) + "%"
@@ -1101,7 +1101,7 @@ func _complete_song() -> void:
 	elif acc >= 55.0: stars = 2
 	var is_fc := (_misses == 0 and hit_total > 0 and GameState.practice_start_sec <= 0.01)
 
-	# Compute median signed timing error (ms) for Switch-Hero style timing calibration tip!
+	# Compute median signed timing error (ms) for post-song timing calibration tip
 	var median_ms := 0.0
 	if _hit_offsets_ms.size() >= 10:
 		var sorted := _hit_offsets_ms.duplicate()
@@ -1394,7 +1394,7 @@ func _draw_highway() -> void:
 				mod_col
 			)
 
-	# 8. Popped-Up ("Timbul") 3D Raised Frets + Clamped Round Gem & Friction Seam with Long Sustain!
+	# 8. Raised 3D Frets + Clamped Round Gem & Friction Seam with Long Sustain
 	for l in range(5):
 		if _fret_pop[l] > 0.02:
 			_draw_fret_3d(l, cx, strike_y, strike_hw)
@@ -1413,7 +1413,7 @@ func _draw_highway() -> void:
 			var vib_x := sin(_song_time * 78.0 + float(l)) * (3.8 if _whammy_active else 2.2)
 			var vib_y := cos(_song_time * 66.0 + float(l)) * 1.4
 
-			# 8a. Keep the Round 3D Jewel Note Gem ("not bulat") visibly locked & vibrating on the fret!
+			# 8a. Keep the Round 3D Jewel Note Gem visibly locked & vibrating on the fret
 			var held_tex: Texture2D = null
 			if _sp_active or bool(sn["sp"]):
 				held_tex = HDAssets.gem_star_hopo if (bool(sn["hopo"]) or bool(sn["tap"])) else HDAssets.gem_star

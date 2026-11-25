@@ -296,7 +296,7 @@ func _build_home_screen(parent: MarginContainer, t: Dictionary) -> void:
 	root_vb.add_child(stats_pill)
 
 	var stats_lbl := Label.new()
-	stats_lbl.text = "🎵 %d LAGU TERPASANG   •   ★ %d BINTANG" % [GameState.library.size(), GameState.get_total_stars()]
+	stats_lbl.text = "🎵 %d SONGS INSTALLED   •   ★ %d STARS" % [GameState.library.size(), GameState.get_total_stars()]
 	stats_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if ThemeManager.font_body:
 		stats_lbl.add_theme_font_override("font", ThemeManager.font_body)
@@ -331,7 +331,7 @@ func _build_home_screen(parent: MarginContainer, t: Dictionary) -> void:
 	now_hb.add_child(info_vb)
 
 	var tag_lbl := Label.new()
-	tag_lbl.text = "SIAP DIMAINKAN"
+	tag_lbl.text = "READY TO PLAY"
 	if ThemeManager.font_semi:
 		tag_lbl.add_theme_font_override("font", ThemeManager.font_semi)
 	tag_lbl.add_theme_font_size_override("font_size", 22)
@@ -357,7 +357,7 @@ func _build_home_screen(parent: MarginContainer, t: Dictionary) -> void:
 	info_vb.add_child(s_art)
 
 	var btn_quick := Button.new()
-	btn_quick.text = "⚡  LANGSUNG MAIN SEKARANG  ▶"
+	btn_quick.text = "⚡  QUICK PLAY NOW  ▶"
 	btn_quick.custom_minimum_size = Vector2(0, 88)
 	ThemeManager.style_button(btn_quick, true, t["accent_2"])
 	btn_quick.add_theme_font_size_override("font_size", 30)
@@ -373,28 +373,28 @@ func _build_home_screen(parent: MarginContainer, t: Dictionary) -> void:
 	root_vb.add_child(mid_sp)
 
 	# 5. Four Huge Full-Width Smartphone Game Buttons
-	var btn_play := _make_mobile_menu_btn("▶   PILIH LAGU", "Daftar lagu lokal & mode latihan", true, t["accent"], 132)
+	var btn_play := _make_mobile_menu_btn("▶   PLAY SONGS", "Local song library & practice mode", true, t["accent"], 132)
 	btn_play.pressed.connect(func():
 		GameState.play_click()
 		_show_screen(Screen.SONGS)
 	)
 	root_vb.add_child(btn_play)
 
-	var btn_store := _make_mobile_menu_btn("☁   UNDUH LAGU BARU", "Cari 85.000+ lagu gratis di enchor.us", false, t["accent_2"], 118)
+	var btn_store := _make_mobile_menu_btn("☁   DOWNLOAD SONGS", "Browse 85,000+ free charts on enchor.us", false, t["accent_2"], 118)
 	btn_store.pressed.connect(func():
 		GameState.play_click()
 		_show_screen(Screen.ENCHOR)
 	)
 	root_vb.add_child(btn_store)
 
-	var btn_cust := _make_mobile_menu_btn("🎨   TEMA & GITAR HD", "5 tema panggung & 3 tekstur papan gitar", false, t["accent_3"], 118)
+	var btn_cust := _make_mobile_menu_btn("🎨   THEMES & HD GUITAR", "5 arena themes & 3 HD fretboard decks", false, t["accent_3"], 118)
 	btn_cust.pressed.connect(func():
 		GameState.play_click()
 		_show_screen(Screen.CUSTOMIZE)
 	)
 	root_vb.add_child(btn_cust)
 
-	var btn_set := _make_mobile_menu_btn("⚙   PENGATURAN", "Kecepatan not, timing & kalibrasi", false, t["border"], 118)
+	var btn_set := _make_mobile_menu_btn("⚙   SETTINGS", "Note speed, hit window & calibration", false, t["border"], 118)
 	btn_set.pressed.connect(func():
 		GameState.play_click()
 		_show_screen(Screen.SETTINGS)
@@ -448,14 +448,14 @@ func _build_songs_screen(parent: MarginContainer, t: Dictionary) -> void:
 	vbox.add_theme_constant_override("separation", 18)
 	parent.add_child(vbox)
 
-	_make_top_bar(vbox, "PILIH LAGU", Screen.HOME, t)
+	_make_top_bar(vbox, "SELECT SONG", Screen.HOME, t)
 
 	# Action Pill Row (Sort + Import + Preview)
 	var tools_hb := HBoxContainer.new()
 	tools_hb.add_theme_constant_override("separation", 12)
 	vbox.add_child(tools_hb)
 
-	var sort_names := ["URUT: JUDUL", "URUT: ARTIS", "URUT: ★"]
+	var sort_names := ["SORT: TITLE", "SORT: ARTIST", "SORT: ★"]
 	var btn_sort := Button.new()
 	btn_sort.text = sort_names[_sort_mode]
 	btn_sort.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -539,7 +539,7 @@ func _build_songs_screen(parent: MarginContainer, t: Dictionary) -> void:
 	sel_hb.add_child(_sel_banner_lbl)
 
 	var btn_next := Button.new()
-	btn_next.text = "PILIH KESULITAN  ▶"
+	btn_next.text = "SELECT DIFFICULTY  ▶"
 	btn_next.custom_minimum_size = Vector2(0, 92)
 	ThemeManager.style_button(btn_next, true, t["accent"])
 	btn_next.add_theme_font_size_override("font_size", 32)
@@ -626,7 +626,7 @@ func _populate_song_cards() -> void:
 
 		var best_st := _get_best_stars_any_diff(str(song.get("id", "")))
 		var st_lbl := Label.new()
-		st_lbl.text = ("★".repeat(best_st) + "☆".repeat(5 - best_st)) if best_st > 0 else "BARU"
+		st_lbl.text = ("★".repeat(best_st) + "☆".repeat(5 - best_st)) if best_st > 0 else "NEW"
 		st_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if ThemeManager.font_body:
 			st_lbl.add_theme_font_override("font", ThemeManager.font_body)
@@ -658,7 +658,7 @@ func _build_difficulty_screen(parent: MarginContainer, t: Dictionary) -> void:
 	vbox.add_theme_constant_override("separation", 22)
 	parent.add_child(vbox)
 
-	_make_top_bar(vbox, "PILIH KESULITAN", Screen.SONGS, t)
+	_make_top_bar(vbox, "DIFFICULTY", Screen.SONGS, t)
 
 	# Selected Song Header Card
 	var scard := PanelContainer.new()
@@ -684,10 +684,10 @@ func _build_difficulty_screen(parent: MarginContainer, t: Dictionary) -> void:
 	vbox.add_child(grid)
 
 	var diff_defs := [
-		{"id": "Easy", "title": "EASY", "desc": "Santai • 3-4 Jalur", "col": Color(0.12, 0.96, 0.48)},
-		{"id": "Medium", "title": "MEDIUM", "desc": "Standar • 4 Jalur", "col": Color(1.0, 0.84, 0.16)},
-		{"id": "Hard", "title": "HARD", "desc": "Cepat • 5 Jalur", "col": Color(1.0, 0.52, 0.12)},
-		{"id": "Expert", "title": "EXPERT", "desc": "Pro • Chart Penuh", "col": Color(1.0, 0.20, 0.34)}
+		{"id": "Easy", "title": "EASY", "desc": "Casual • 3-4 Lanes", "col": Color(0.12, 0.96, 0.48)},
+		{"id": "Medium", "title": "MEDIUM", "desc": "Standard • 4 Lanes", "col": Color(1.0, 0.84, 0.16)},
+		{"id": "Hard", "title": "HARD", "desc": "Fast • 5 Lanes", "col": Color(1.0, 0.52, 0.12)},
+		{"id": "Expert", "title": "EXPERT", "desc": "Pro • Full Chart", "col": Color(1.0, 0.20, 0.34)}
 	]
 
 	for dd in diff_defs:
@@ -735,7 +735,7 @@ func _build_difficulty_screen(parent: MarginContainer, t: Dictionary) -> void:
 		cv.add_child(st_lbl)
 
 		var best_txt := Label.new()
-		best_txt.text = ("%d PTS" % int(rec.get("score", 0))) if not rec.is_empty() else "Belum dimainkan"
+		best_txt.text = ("%d PTS" % int(rec.get("score", 0))) if not rec.is_empty() else "Not played yet"
 		best_txt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		if ThemeManager.font_body:
 			best_txt.add_theme_font_override("font", ThemeManager.font_body)
@@ -756,7 +756,7 @@ func _build_difficulty_screen(parent: MarginContainer, t: Dictionary) -> void:
 	vbox.add_child(opt_hb)
 
 	var speeds := [1.0, 0.75, 0.50, 1.25]
-	var speed_labels := ["SPEED: 100%", "LATIHAN: 75%", "BELAJAR: 50%", "HYPER: 125%"]
+	var speed_labels := ["SPEED: 100%", "PRACTICE: 75%", "LEARN: 50%", "HYPER: 125%"]
 	var cur_spd_idx := speeds.find(GameState.practice_speed)
 	if cur_spd_idx < 0:
 		cur_spd_idx = 0
@@ -790,7 +790,7 @@ func _build_difficulty_screen(parent: MarginContainer, t: Dictionary) -> void:
 
 	# Giant Bottom Launch Button
 	var btn_go := Button.new()
-	btn_go.text = "★   MULAI KONSER!   ★"
+	btn_go.text = "★   ROCK ON STAGE!   ★"
 	btn_go.custom_minimum_size = Vector2(0, 114)
 	ThemeManager.style_button(btn_go, true, t["accent"])
 	btn_go.add_theme_font_size_override("font_size", 36)
@@ -810,11 +810,11 @@ func _build_enchor_screen(parent: MarginContainer, t: Dictionary) -> void:
 	vbox.add_theme_constant_override("separation", 16)
 	parent.add_child(vbox)
 
-	_make_top_bar(vbox, "UNDUH LAGU", Screen.HOME, t)
+	_make_top_bar(vbox, "ENCHOR.US STORE", Screen.HOME, t)
 
 	# Full-width Search Box + Buttons
 	_search_input = LineEdit.new()
-	_search_input.placeholder_text = "Cari judul lagu atau band..."
+	_search_input.placeholder_text = "Search song title, artist, or charter..."
 	_search_input.custom_minimum_size = Vector2(0, 78)
 	_search_input.add_theme_stylebox_override("normal", ThemeManager.make_card_style(Color(0.03, 0.03, 0.08, 0.96), t["border"], 18, 2, 0))
 	if ThemeManager.font_body:
@@ -828,7 +828,7 @@ func _build_enchor_screen(parent: MarginContainer, t: Dictionary) -> void:
 	vbox.add_child(s_hb)
 
 	var btn_search := Button.new()
-	btn_search.text = "🔍  CARI DI ENCHOR.US"
+	btn_search.text = "🔍  SEARCH ENCHOR.US"
 	btn_search.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn_search.custom_minimum_size = Vector2(0, 74)
 	ThemeManager.style_button(btn_search, true)
@@ -839,7 +839,7 @@ func _build_enchor_screen(parent: MarginContainer, t: Dictionary) -> void:
 	s_hb.add_child(btn_search)
 
 	var btn_top := Button.new()
-	btn_top.text = "POPULER"
+	btn_top.text = "TOP / LATEST"
 	btn_top.custom_minimum_size = Vector2(185, 74)
 	ThemeManager.style_button(btn_top, false)
 	btn_top.pressed.connect(func():
@@ -850,7 +850,7 @@ func _build_enchor_screen(parent: MarginContainer, t: Dictionary) -> void:
 	s_hb.add_child(btn_top)
 
 	_enchor_status = Label.new()
-	_enchor_status.text = "Memuat daftar chart dari enchor.us..."
+	_enchor_status.text = "Loading charts from enchor.us..."
 	if ThemeManager.font_body:
 		_enchor_status.add_theme_font_override("font", ThemeManager.font_body)
 	_enchor_status.add_theme_font_size_override("font_size", 24)
@@ -877,7 +877,7 @@ func _build_enchor_screen(parent: MarginContainer, t: Dictionary) -> void:
 	vbox.add_child(prow)
 
 	var btn_prev := Button.new()
-	btn_prev.text = "◀  SEBELUMNYA"
+	btn_prev.text = "◀  PREVIOUS"
 	btn_prev.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn_prev.custom_minimum_size = Vector2(0, 74)
 	ThemeManager.style_button(btn_prev, false)
@@ -888,7 +888,7 @@ func _build_enchor_screen(parent: MarginContainer, t: Dictionary) -> void:
 	prow.add_child(btn_prev)
 
 	var btn_next := Button.new()
-	btn_next.text = "BERIKUTNYA  ▶"
+	btn_next.text = "NEXT  ▶"
 	btn_next.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn_next.custom_minimum_size = Vector2(0, 74)
 	ThemeManager.style_button(btn_next, false)
@@ -903,7 +903,7 @@ func _trigger_enchor_search(query: String, page: int) -> void:
 	_enchor_last_query = query if query.strip_edges() != "" else "*"
 	_enchor_page = maxi(1, page)
 	if _enchor_status:
-		_enchor_status.text = "Mencari... (Halaman " + str(_enchor_page) + ")"
+		_enchor_status.text = "Searching... (Page " + str(_enchor_page) + ")"
 	EnchorClient.search_charts(_enchor_last_query, _enchor_page)
 
 func _on_enchor_results(results: Array, total_found: int, page: int, error_msg: String) -> void:
@@ -917,7 +917,7 @@ func _on_enchor_results(results: Array, total_found: int, page: int, error_msg: 
 		_enchor_status.text = "⚠ " + error_msg
 		return
 
-	_enchor_status.text = "%d lagu ditemukan  •  Halaman %d" % [total_found, page]
+	_enchor_status.text = "%d charts found  •  Page %d" % [total_found, page]
 	var t := ThemeManager.get_theme_data()
 
 	for item in results:
@@ -982,7 +982,7 @@ func _on_enchor_results(results: Array, total_found: int, page: int, error_msg: 
 		var item_copy: Dictionary = item
 		if downloaded:
 			var btn_play := Button.new()
-			btn_play.text = "▶  MAIN SEKARANG"
+			btn_play.text = "▶  PLAY NOW"
 			btn_play.custom_minimum_size = Vector2(0, 68)
 			ThemeManager.style_button(btn_play, true)
 			btn_play.pressed.connect(func():
@@ -997,7 +997,7 @@ func _on_enchor_results(results: Array, total_found: int, page: int, error_msg: 
 			row_vb.add_child(btn_play)
 		else:
 			var btn_dl := Button.new()
-			btn_dl.text = "⬇  UNDUH & MAIN"
+			btn_dl.text = "⬇  DOWNLOAD & PLAY"
 			btn_dl.custom_minimum_size = Vector2(0, 68)
 			ThemeManager.style_button(btn_dl, true, t["accent_2"])
 			btn_dl.pressed.connect(func():
@@ -1020,7 +1020,7 @@ func _build_customize_screen(parent: MarginContainer, t: Dictionary) -> void:
 	vbox.add_theme_constant_override("separation", 18)
 	parent.add_child(vbox)
 
-	_make_top_bar(vbox, "TEMA & GITAR HD", Screen.HOME, t)
+	_make_top_bar(vbox, "THEMES & HD DECKS", Screen.HOME, t)
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -1041,7 +1041,7 @@ func _build_customize_screen(parent: MarginContainer, t: Dictionary) -> void:
 	board_card.add_child(bvb)
 
 	var blbl := Label.new()
-	blbl.text = "TEKSTUR PAPAN GITAR HD"
+	blbl.text = "HD FRETBOARD SURFACE"
 	if ThemeManager.font_display:
 		blbl.add_theme_font_override("font", ThemeManager.font_display)
 	blbl.add_theme_font_size_override("font_size", 26)
@@ -1113,7 +1113,7 @@ func _build_customize_screen(parent: MarginContainer, t: Dictionary) -> void:
 			sw_row.add_child(sw)
 
 		var btn := Button.new()
-		btn.text = "✓  TEMA AKTIF" if active else "PAKAI TEMA INI"
+		btn.text = "✓  ACTIVE THEME" if active else "APPLY THEME"
 		btn.custom_minimum_size = Vector2(0, 74)
 		ThemeManager.style_button(btn, active, td["accent"])
 		var target_id := str(tid)
@@ -1131,7 +1131,7 @@ func _build_settings_screen(parent: MarginContainer, t: Dictionary) -> void:
 	vbox.add_theme_constant_override("separation", 18)
 	parent.add_child(vbox)
 
-	var bar := _make_top_bar(vbox, "PENGATURAN", Screen.HOME, t)
+	var bar := _make_top_bar(vbox, "SETTINGS", Screen.HOME, t)
 
 	_fps_lbl = Label.new()
 	_fps_lbl.text = "60 FPS"
@@ -1159,25 +1159,25 @@ func _build_settings_screen(parent: MarginContainer, t: Dictionary) -> void:
 	c1_vb.add_theme_constant_override("separation", 18)
 	card1.add_child(c1_vb)
 
-	_add_slider_row(c1_vb, "Kecepatan Scroll Not", 0.7, 1.8, 0.05, float(GameState.settings.get("note_speed", 1.0)), func(v: float):
+	_add_slider_row(c1_vb, "Highway Note Speed", 0.7, 1.8, 0.05, float(GameState.settings.get("note_speed", 1.0)), func(v: float):
 		GameState.settings["note_speed"] = v
 		GameState.save_data()
 	)
-	_add_slider_row(c1_vb, "Volume Musik", 0.1, 1.0, 0.05, float(GameState.settings.get("music_volume", 1.0)), func(v: float):
+	_add_slider_row(c1_vb, "Music Volume", 0.1, 1.0, 0.05, float(GameState.settings.get("music_volume", 1.0)), func(v: float):
 		GameState.settings["music_volume"] = v
 		GameState.save_data()
 	)
-	_add_slider_row(c1_vb, "Volume Efek Suara", 0.0, 1.0, 0.05, float(GameState.settings.get("sfx_volume", 0.85)), func(v: float):
+	_add_slider_row(c1_vb, "SFX Volume", 0.0, 1.0, 0.05, float(GameState.settings.get("sfx_volume", 0.85)), func(v: float):
 		GameState.settings["sfx_volume"] = v
 		GameState.save_data()
 	)
-	_add_slider_row(c1_vb, "Intensitas Lampu Konser", 0.4, 1.5, 0.05, float(GameState.settings.get("light_intensity", 1.0)), func(v: float):
+	_add_slider_row(c1_vb, "Stage Light Intensity", 0.4, 1.5, 0.05, float(GameState.settings.get("light_intensity", 1.0)), func(v: float):
 		GameState.settings["light_intensity"] = v
 		GameState.save_data()
 	)
 
 	var hw_lbl := Label.new()
-	hw_lbl.text = "TOLERANSI TIMING HIT"
+	hw_lbl.text = "HIT WINDOW TIMING"
 	if ThemeManager.font_display:
 		hw_lbl.add_theme_font_override("font", ThemeManager.font_display)
 	hw_lbl.add_theme_font_size_override("font_size", 24)
@@ -1210,7 +1210,7 @@ func _build_settings_screen(parent: MarginContainer, t: Dictionary) -> void:
 
 	var hap_on := bool(GameState.settings.get("haptics", true))
 	var btn_hap := Button.new()
-	btn_hap.text = "GETAR: ON ✓" if hap_on else "GETAR: OFF"
+	btn_hap.text = "HAPTICS: ON ✓" if hap_on else "HAPTICS: OFF"
 	btn_hap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn_hap.custom_minimum_size = Vector2(0, 72)
 	ThemeManager.style_button(btn_hap, hap_on)
@@ -1245,7 +1245,7 @@ func _build_settings_screen(parent: MarginContainer, t: Dictionary) -> void:
 	card2.add_child(c2_vb)
 
 	_cal_lbl = Label.new()
-	_cal_lbl.text = "KALIBRASI AUDIO: %d ms" % int(round(float(GameState.settings.get("audio_offset_ms", 0.0))))
+	_cal_lbl.text = "AUDIO OFFSET: %d ms" % int(round(float(GameState.settings.get("audio_offset_ms", 0.0))))
 	if ThemeManager.font_display:
 		_cal_lbl.add_theme_font_override("font", ThemeManager.font_display)
 	_cal_lbl.add_theme_font_size_override("font_size", 26)
@@ -1261,7 +1261,7 @@ func _build_settings_screen(parent: MarginContainer, t: Dictionary) -> void:
 	cal_slider.value_changed.connect(func(v: float):
 		GameState.settings["audio_offset_ms"] = v
 		GameState.save_data()
-		_cal_lbl.text = "KALIBRASI AUDIO: %d ms" % int(round(v))
+		_cal_lbl.text = "AUDIO OFFSET: %d ms" % int(round(v))
 	)
 	c2_vb.add_child(cal_slider)
 
@@ -1283,26 +1283,26 @@ func _build_settings_screen(parent: MarginContainer, t: Dictionary) -> void:
 		step_row.add_child(sb)
 
 	var btn_toggle_beat := Button.new()
-	btn_toggle_beat.text = "▶  MULAI TES SUARA BIT"
+	btn_toggle_beat.text = "▶  START BEAT SOUND TEST"
 	btn_toggle_beat.custom_minimum_size = Vector2(0, 74)
 	ThemeManager.style_button(btn_toggle_beat, false)
 	btn_toggle_beat.pressed.connect(func():
 		_cal_test_active = not _cal_test_active
 		_cal_beat_timer = 0.0
 		_cal_taps.clear()
-		btn_toggle_beat.text = "■  HENTIKAN TES BIT" if _cal_test_active else "▶  MULAI TES SUARA BIT"
+		btn_toggle_beat.text = "■  STOP BEAT TEST" if _cal_test_active else "▶  START BEAT SOUND TEST"
 	)
 	c2_vb.add_child(btn_toggle_beat)
 
 	var btn_tap := Button.new()
-	btn_tap.text = "🥁  KETUK SESUAI BIT (AUTO)"
+	btn_tap.text = "🥁  TAP ON BEAT (AUTO)"
 	btn_tap.custom_minimum_size = Vector2(0, 88)
 	ThemeManager.style_button(btn_tap, true, t["accent_2"])
 	btn_tap.pressed.connect(func():
 		if not _cal_test_active:
 			_cal_test_active = true
 			_cal_beat_timer = 0.0
-			btn_toggle_beat.text = "■  HENTIKAN TES BIT"
+			btn_toggle_beat.text = "■  STOP BEAT TEST"
 			return
 		var signed_err := _cal_beat_timer if _cal_beat_timer <= 0.25 else (_cal_beat_timer - 0.5)
 		_cal_taps.append(signed_err * 1000.0)
@@ -1366,7 +1366,7 @@ func _build_download_modal(t: Dictionary) -> void:
 	_dl_modal.add_child(vb)
 
 	_dl_label = Label.new()
-	_dl_label.text = "Mengunduh paket lagu .sng..."
+	_dl_label.text = "Downloading .sng package..."
 	_dl_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_dl_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	if ThemeManager.font_body:
@@ -1379,7 +1379,7 @@ func _build_download_modal(t: Dictionary) -> void:
 	vb.add_child(_dl_bar)
 
 	var btn_cancel := Button.new()
-	btn_cancel.text = "BATALKAN"
+	btn_cancel.text = "CANCEL"
 	btn_cancel.custom_minimum_size = Vector2(0, 74)
 	ThemeManager.style_button(btn_cancel, false)
 	btn_cancel.pressed.connect(func():
@@ -1391,7 +1391,7 @@ func _build_download_modal(t: Dictionary) -> void:
 func _start_song_download(meta: Dictionary) -> void:
 	_dl_modal.visible = true
 	_dl_bar.value = 0.0
-	_dl_label.text = "Mengunduh: " + str(meta.get("name", "Chart")) + "..."
+	_dl_label.text = "Downloading: " + str(meta.get("name", "Chart")) + "..."
 	EnchorClient.download_chart(meta)
 
 func _on_dl_progress(_md5: String, dl_bytes: int, total_bytes: int) -> void:
@@ -1401,10 +1401,10 @@ func _on_dl_progress(_md5: String, dl_bytes: int, total_bytes: int) -> void:
 	if total_bytes > 0:
 		var tmb := float(total_bytes) / 1048576.0
 		_dl_bar.value = (float(dl_bytes) / float(total_bytes)) * 100.0
-		_dl_label.text = "Mengunduh... %.1f / %.1f MB" % [mb, tmb]
+		_dl_label.text = "Downloading... %.1f / %.1f MB" % [mb, tmb]
 	else:
 		_dl_bar.value = fmod(mb * 20.0, 95.0)
-		_dl_label.text = "Mengunduh... %.1f MB" % mb
+		_dl_label.text = "Downloading... %.1f MB" % mb
 
 func _on_dl_completed(md5: String, _sng_path: String, error_msg: String) -> void:
 	_dl_modal.visible = false

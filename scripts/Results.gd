@@ -36,7 +36,7 @@ func _ready() -> void:
 	var is_fc := bool(res.get("fc", false))
 	var is_new := bool(res.get("new_best", false))
 	var banner := Label.new()
-	banner.text = "★ FULL COMBO! ★" if is_fc else ("★ REKOR BARU! ★" if is_new else "KONSER SELESAI")
+	banner.text = "★ FULL COMBO! ★" if is_fc else ("★ NEW HIGH SCORE! ★" if is_new else "CONCERT COMPLETE")
 	banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if ThemeManager.font_display:
 		banner.add_theme_font_override("font", ThemeManager.font_display)
@@ -92,8 +92,8 @@ func _ready() -> void:
 	# Breakdown Rows
 	var hit_cnt := int(res.get("perfect", 0)) + int(res.get("great", 0)) + int(res.get("good", 0))
 	var tot_cnt := maxi(hit_cnt + int(res.get("missed", 0)), int(res.get("total_notes", 0)))
-	_add_stat_row(root_vb, "NOT KENA", "%d / %d (%.1f%%)" % [hit_cnt, tot_cnt, acc], t["accent"], t)
-	_add_stat_row(root_vb, "STREAK TERBAIK", str(int(res.get("max_streak", 0))) + "x", t["accent_2"], t)
+	_add_stat_row(root_vb, "NOTES HIT", "%d / %d (%.1f%%)" % [hit_cnt, tot_cnt, acc], t["accent"], t)
+	_add_stat_row(root_vb, "BEST STREAK", str(int(res.get("max_streak", 0))) + "x", t["accent_2"], t)
 	_add_stat_row(
 		root_vb,
 		"P / GR / GD / M",
@@ -114,9 +114,9 @@ func _ready() -> void:
 	var med_ms := float(res.get("median_offset_ms", 0.0))
 	if samples >= 10 and absf(med_ms) >= 8.0:
 		var fix_delta: float = roundf(med_ms / 5.0) * 5.0
-		var dir_word := "terlambat" if med_ms > 0.0 else "lebih cepat"
+		var dir_word := "late" if med_ms > 0.0 else "early"
 		var tip_btn := Button.new()
-		tip_btn.text = "⚡ %d ms %s — Ketuk Fix (%+d ms)" % [int(round(absf(med_ms))), dir_word, int(fix_delta)]
+		tip_btn.text = "⚡ %d ms %s — Tap to Fix (%+d ms)" % [int(round(absf(med_ms))), dir_word, int(fix_delta)]
 		tip_btn.custom_minimum_size = Vector2(0, 74)
 		ThemeManager.style_button(tip_btn, false, Color(1.0, 0.78, 0.20))
 		tip_btn.add_theme_font_size_override("font_size", 24)
@@ -126,7 +126,7 @@ func _ready() -> void:
 			var next_off := clampf(cur_off + fix_delta, -150.0, 150.0)
 			GameState.settings["audio_offset_ms"] = next_off
 			GameState.save_data()
-			tip_btn.text = "✓ Offset Disesuaikan ke %d ms" % int(round(next_off))
+			tip_btn.text = "✓ Audio Offset Updated to %d ms" % int(round(next_off))
 			tip_btn.disabled = true
 		)
 		root_vb.add_child(tip_btn)
@@ -141,7 +141,7 @@ func _ready() -> void:
 	root_vb.add_child(pair_hb)
 
 	var btn_retry := Button.new()
-	btn_retry.text = "↻  MAIN LAGI"
+	btn_retry.text = "↻  PLAY AGAIN"
 	btn_retry.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn_retry.custom_minimum_size = Vector2(0, 88)
 	ThemeManager.style_button(btn_retry, false)
@@ -152,7 +152,7 @@ func _ready() -> void:
 	pair_hb.add_child(btn_retry)
 
 	var btn_diff := Button.new()
-	btn_diff.text = "🎚  LEVEL"
+	btn_diff.text = "🎚  DIFFICULTY"
 	btn_diff.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn_diff.custom_minimum_size = Vector2(0, 88)
 	ThemeManager.style_button(btn_diff, false, t["accent_2"])
@@ -164,7 +164,7 @@ func _ready() -> void:
 	pair_hb.add_child(btn_diff)
 
 	var btn_songs := Button.new()
-	btn_songs.text = "▶   DAFTAR LAGU"
+	btn_songs.text = "▶   SONG LIBRARY"
 	btn_songs.custom_minimum_size = Vector2(0, 96)
 	ThemeManager.style_button(btn_songs, true, t["accent"])
 	btn_songs.add_theme_font_size_override("font_size", 32)
