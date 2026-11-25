@@ -1,3 +1,4 @@
+# Copyright (c) 2026 ipungsx (https://github.com/ipungsx)
 extends Node
 
 const SAVE_PATH := "user://droidhero_v2_save.json"
@@ -30,6 +31,7 @@ var current_difficulty: String = "Expert" # Easy, Medium, Hard, Expert
 var practice_start_sec: float = 0.0
 var last_result: Dictionary = {}
 var open_screen_on_menu: int = 0          # 0=Home, 1=SongList, 2=Difficulty
+var intro_shown: bool = false
 
 #Synthesized UI/SFX players
 var _sfx_player: AudioStreamPlayer

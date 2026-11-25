@@ -1,3 +1,4 @@
+# Copyright (c) 2026 ipungsx (https://github.com/ipungsx)
 extends Node
 
 signal language_changed(lang_code: String)
@@ -6,7 +7,7 @@ var current_lang: String = "en"
 
 const STRINGS: Dictionary = {
 	"en": {
-		"subtitle": "V2.4 HD  •  MOBILE GUITAR RHYTHM",
+		"subtitle": "V2.5 HD  •  BY IPUNGSX",
 		"stats_pill": "🎵 %d SONGS   •   ★ %d STARS",
 		"ready_to_play": "READY TO PLAY",
 		"quick_play": "⚡  QUICK PLAY NOW  ▶",
@@ -18,6 +19,21 @@ const STRINGS: Dictionary = {
 		"menu_customize_sub": "5 themes, 6 music visualizers & 3 HD decks",
 		"menu_settings": "⚙   SETTINGS",
 		"menu_settings_sub": "Note speed, lights, timing & calibration",
+		"menu_about": "ℹ  ABOUT",
+		"intro_by": "BY IPUNGSX",
+		"intro_url": "github.com/ipungsx",
+		"intro_tap": "Tap anywhere to continue",
+		"about_title": "ABOUT DROIDHEROV2",
+		"about_dev_hdr": "CREATOR & COPYRIGHT",
+		"about_dev_body": "DroidHeroV2\nVersion 2.5.0 HD (Android Portrait)\n\nCreated & Developed by ipungsx\nGitHub: https://github.com/ipungsx\nRepository: https://github.com/ipungsx/DroidHerov2\n\nCopyright © 2026 ipungsx. All Rights Reserved.\nLicensed under the MIT License.",
+		"about_credits_hdr": "CREDITS",
+		"about_credits_body": "• Concept, Engineering, UI/UX & HD Visuals:\n   ipungsx (github.com/ipungsx)\n• Community Charts & Song Metadata:\n   enchor.us Community Charters\n• Built-In Original Track:\n   Neon Overdrive (DroidHero Studio)",
+		"about_oss_hdr": "THIRD-PARTY & OPEN-SOURCE LICENSES",
+		"about_oss_body": "• Godot Engine 4.7 — MIT License\n• OpusGdextension (Ogg Opus Decoder) by Joy-less — MIT License\n• Orbitron & Rajdhani Fonts — SIL Open Font License (OFL)\n• Song charts downloaded via enchor.us belong to their respective music artists and community charters.",
+		"about_legal_hdr": "LEGAL NOTICE & DISCLAIMER",
+		"about_legal_body": "DroidHeroV2 is an independent, original rhythm game created by ipungsx. It is not affiliated with, endorsed by, or sponsored by Activision, RedOctane, Harmonix, or any third-party trademark holders. All trademarks belong to their respective owners.",
+		"about_open_github": "🌐  OPEN GITHUB.COM/IPUNGSX",
+		"about_open_repo": "📦  OPEN DROIDHEROV2 REPOSITORY",
 		"select_song": "SELECT SONG",
 		"sort_title": "SORT: TITLE",
 		"sort_artist": "SORT: ARTIST",
@@ -91,7 +107,6 @@ const STRINGS: Dictionary = {
 		"sp_ready": "⚡ DEPLOY!\n%d%%",
 		"sp_on": "⚡ 2X LIVE!\n%d%%",
 		"sp_idle": "STAR\n%d%%",
-		"whammy_lbl": "WHAMMY\nBAR",
 		"res_fc": "★ FULL COMBO! ★",
 		"res_new": "★ NEW HIGH SCORE! ★",
 		"res_done": "CONCERT COMPLETE",
@@ -107,7 +122,7 @@ const STRINGS: Dictionary = {
 		"song_library": "▶   SONG LIBRARY"
 	},
 	"id": {
-		"subtitle": "V2.4 HD  •  GAME GITAR RITME HP",
+		"subtitle": "V2.5 HD  •  OLEH IPUNGSX",
 		"stats_pill": "🎵 %d LAGU   •   ★ %d BINTANG",
 		"ready_to_play": "SIAP DIMAINKAN",
 		"quick_play": "⚡  LANGSUNG MAIN SEKARANG  ▶",
@@ -119,6 +134,21 @@ const STRINGS: Dictionary = {
 		"menu_customize_sub": "5 tema, 6 visualiser musik & 3 papan HD",
 		"menu_settings": "⚙   PENGATURAN",
 		"menu_settings_sub": "Kecepatan not, lampu, timing & kalibrasi",
+		"menu_about": "ℹ  TENTANG",
+		"intro_by": "BY IPUNGSX",
+		"intro_url": "github.com/ipungsx",
+		"intro_tap": "Ketuk layar untuk melanjutkan",
+		"about_title": "TENTANG DROIDHEROV2",
+		"about_dev_hdr": "PENCIPTA & HAK CIPTA",
+		"about_dev_body": "DroidHeroV2\nVersi 2.5.0 HD (Android Portrait)\n\nDibuat & Dikembangkan oleh ipungsx\nGitHub: https://github.com/ipungsx\nRepositori: https://github.com/ipungsx/DroidHerov2\n\nHak Cipta © 2026 ipungsx. Hak Cipta Dilindungi.\nDirilis di bawah Lisensi MIT (MIT License).",
+		"about_credits_hdr": "KREDIT",
+		"about_credits_body": "• Konsep, Pemrograman, UI/UX & Visual HD:\n   ipungsx (github.com/ipungsx)\n• Chart Komunitas & Metadata Lagu:\n   Komunitas Charter enchor.us\n• Lagu Bawaan:\n   Neon Overdrive (DroidHero Studio)",
+		"about_oss_hdr": "LISENSI PIHAK KETIGA & OPEN-SOURCE",
+		"about_oss_body": "• Godot Engine 4.7 — Lisensi MIT\n• OpusGdextension (Dekoder Ogg Opus) oleh Joy-less — Lisensi MIT\n• Font Orbitron & Rajdhani — SIL Open Font License (OFL)\n• Chart lagu yang diunduh melalui enchor.us merupakan hak cipta masing-masing musisi dan charter komunitas.",
+		"about_legal_hdr": "PEMBERITAHUAN HUKUM & PENYANGKALAN",
+		"about_legal_body": "DroidHeroV2 adalah game ritme independen dan orisinal buatan ipungsx. Aplikasi ini tidak berafiliasi dengan, didukung oleh, atau disponsori oleh Activision, RedOctane, Harmonix, atau pemegang merek dagang pihak ketiga mana pun. Seluruh merek dagang adalah milik masing-masing pemiliknya.",
+		"about_open_github": "🌐  BUKA GITHUB.COM/IPUNGSX",
+		"about_open_repo": "📦  BUKA REPOSITORI DROIDHEROV2",
 		"select_song": "PILIH LAGU",
 		"sort_title": "URUT: JUDUL",
 		"sort_artist": "URUT: ARTIS",
@@ -192,7 +222,6 @@ const STRINGS: Dictionary = {
 		"sp_ready": "⚡ DEPLOY!\n%d%%",
 		"sp_on": "⚡ 2X AKTIF!\n%d%%",
 		"sp_idle": "STAR\n%d%%",
-		"whammy_lbl": "WHAMMY\nBAR",
 		"res_fc": "★ FULL COMBO! ★",
 		"res_new": "★ REKOR BARU! ★",
 		"res_done": "KONSER SELESAI",

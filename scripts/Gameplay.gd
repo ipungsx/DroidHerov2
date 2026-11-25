@@ -1,6 +1,7 @@
+# Copyright (c) 2026 ipungsx (https://github.com/ipungsx)
 extends Control
 
-# DroidHeroV2 HD Wide-Highway Guitar Engine (1600x720 60fps + Multi-Touch + Sustain Friction FX)
+# DroidHeroV2 HD Wide-Highway Guitar Engine (720x1600 60fps + Multi-Touch + Sustain Friction FX)
 
 const BASE_PERFECT := 0.044
 const BASE_GREAT := 0.088
@@ -50,9 +51,6 @@ var _max_streak: int = 0
 var _rock_meter: float = 60.0
 var _star_power: float = 0.0
 var _sp_active: bool = false
-var _whammy_active: bool = false
-var _whammy_key: bool = false
-var _whammy_phase: float = 0.0
 
 var _hits_perfect: int = 0
 var _hits_great: int = 0
@@ -105,7 +103,6 @@ var _lbl_fps: Label
 var _lbl_time: Label
 var _pause_btn: Button
 var _sp_btn: Button
-var _whammy_btn: Button
 var _progress_bar: ProgressBar
 
 # Preallocated draw buffers
@@ -326,20 +323,6 @@ func _build_scene_tree() -> void:
 	_sp_btn.add_theme_font_size_override("font_size", 21)
 	_sp_btn.pressed.connect(_try_activate_star_power)
 	_hud_layer.add_child(_sp_btn)
-
-	# Upper-Right Whammy Bar Button (neatly above horizon)
-	_whammy_btn = Button.new()
-	_whammy_btn.text = I18n.t("whammy_lbl")
-	_whammy_btn.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_whammy_btn.offset_left = -170
-	_whammy_btn.offset_top = 186
-	_whammy_btn.offset_right = -14
-	_whammy_btn.offset_bottom = 278
-	ThemeManager.style_button(_whammy_btn, false, t["accent_2"])
-	_whammy_btn.add_theme_font_size_override("font_size", 21)
-	_whammy_btn.button_down.connect(func(): _whammy_active = true)
-	_whammy_btn.button_up.connect(func(): _whammy_active = false)
-	_hud_layer.add_child(_whammy_btn)
 
 	_build_overlays(t)
 
@@ -594,8 +577,6 @@ func _process(delta: float) -> void:
 	_update_sp_button()
 
 	# Animate 3D raised frets, hit flames, shockwaves, & active long-note sustain friction!
-	_whammy_phase += delta * 20.0
-	var any_sustain := false
 	var sz := size
 	var strike_y := sz.y * 0.835
 	var strike_hw := sz.x * 0.478
@@ -621,13 +602,10 @@ func _process(delta: float) -> void:
 				sn["sustain_done"] = true
 				_active_sustains[l] = null
 			else:
-				any_sustain = true
 				var mult := _effective_multiplier()
 				_score += int(round(delta * 140.0 * float(mult)))
 				_hit_flames[l] = maxf(_hit_flames[l], 0.45)
-				if _whammy_active:
-					_star_power = minf(100.0, _star_power + delta * 11.5)
-				elif bool(sn["sp"]):
+				if bool(sn["sp"]):
 					_star_power = minf(100.0, _star_power + delta * 6.5)
 
 				# Continuous friction sparks spraying from the exact seam between round gem & long ribbon!
@@ -651,11 +629,6 @@ func _process(delta: float) -> void:
 			_spark_x[idx] += _spark_vx[idx] * delta
 			_spark_y[idx] += _spark_vy[idx] * delta
 			_spark_vy[idx] += 760.0 * delta
-
-	if not _players.is_empty():
-		var bend := 1.0 + (sin(_whammy_phase) * 0.024 if (_whammy_active and any_sustain) else 0.0)
-		for p in _players:
-			p.pitch_scale = _speed_scale * bend
 
 	# Advance _render_cursor ONLY after full note end_time has scrolled past!
 	while _render_cursor < _notes.size() and float(_notes[_render_cursor]["end_time"]) < _song_time - 0.22:
@@ -762,11 +735,6 @@ func _input(event: InputEvent) -> void:
 				_try_activate_star_power()
 				get_viewport().set_input_as_handled()
 				return
-			if _whammy_btn and _whammy_btn.get_global_rect().grow(6.0).has_point(te.position):
-				_touch_to_lane[te.index] = -2
-				_recompute_touch_lanes()
-				get_viewport().set_input_as_handled()
-				return
 			var l := _pos_to_lane(te.position)
 			if l >= 0:
 				_touch_to_lane[te.index] = l
@@ -812,10 +780,6 @@ func _input(event: InputEvent) -> void:
 		elif ke.keycode == KEY_SPACE and ke.pressed:
 			_try_activate_star_power()
 			get_viewport().set_input_as_handled()
-		elif ke.keycode == KEY_SHIFT:
-			_whammy_key = ke.pressed
-			_recompute_touch_lanes()
-			get_viewport().set_input_as_handled()
 		elif ke.keycode == KEY_ESCAPE and ke.pressed:
 			_toggle_pause()
 			get_viewport().set_input_as_handled()
@@ -827,8 +791,6 @@ func _input(event: InputEvent) -> void:
 				return
 			if _sp_btn and _sp_btn.get_global_rect().has_point(mb.position):
 				return
-			if _whammy_btn and _whammy_btn.get_global_rect().has_point(mb.position):
-				return
 			var l := _pos_to_lane(mb.position)
 			if l >= 0:
 				if mb.pressed:
@@ -839,14 +801,10 @@ func _input(event: InputEvent) -> void:
 func _recompute_touch_lanes() -> void:
 	for i in range(5):
 		_lane_pressed[i] = _key_pressed[i]
-	var whammy_held := _whammy_key
 	for idx in _touch_to_lane.keys():
 		var l: int = _touch_to_lane[idx]
 		if l >= 0 and l < 5:
 			_lane_pressed[l] = true
-		elif l == -2:
-			whammy_held = true
-	_whammy_active = whammy_held
 
 func _key_to_lane(code: Key) -> int:
 	match code:
@@ -1322,11 +1280,9 @@ func _draw_highway() -> void:
 			scol = scol.darkened(0.45)
 
 		if held:
-			# Subtle grind vibration + Whammy wave along held sustain ribbon
-			var vib := sin(_song_time * 46.0 + float(lane)) * (5.5 if _whammy_active else 2.2)
+			# Subtle grind vibration along held sustain ribbon
+			var vib := sin(_song_time * 46.0 + float(lane)) * 2.2
 			x0 += vib * 0.35
-			if _whammy_active:
-				w0 *= 1.38
 
 			# Outer plasma aura ribbon when actively held
 			_quad_pts[0] = Vector2(x1 - w1 * 1.65, y1)
@@ -1427,7 +1383,7 @@ func _draw_highway() -> void:
 			var scol: Color = t["star_power"] if (_sp_active or bool(sn["sp"])) else ThemeManager.LANE_COLORS[l]
 			var grind_pulse := 0.86 + 0.24 * sin(_song_time * 54.0 + float(l) * 1.9)
 			# High-frequency friction micro-vibration on the clamped round gem
-			var vib_x := sin(_song_time * 78.0 + float(l)) * (3.8 if _whammy_active else 2.2)
+			var vib_x := sin(_song_time * 78.0 + float(l)) * 2.2
 			var vib_y := cos(_song_time * 66.0 + float(l)) * 1.4
 
 			# 8a. Keep the Round 3D Jewel Note Gem visibly locked & vibrating on the fret
@@ -1609,7 +1565,7 @@ func _draw_fret_3d(l: int, cx: float, strike_y: float, strike_hw: float) -> void
 	_draw_ellipse(top_c - Vector2(0.0, h * 0.20), w * 0.52, h * 0.40, Color(1.0, 1.0, 1.0, 0.18 + 0.65 * pop))
 
 func _draw_upper_side_meters(_cx: float, _top_y: float, _strike_y: float, _top_hw: float, _strike_hw: float, t: Dictionary) -> void:
-	# Tucked neatly along upper left & right screen edges below Star Power / Whammy buttons
+	# Tucked neatly along upper left & right screen edges below HUD cards
 	var sz := size
 	var y_hi := 298.0
 	var y_lo := minf(sz.y * 0.46, 620.0)

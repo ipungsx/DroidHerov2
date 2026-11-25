@@ -19,11 +19,11 @@
 - **Built-In Offline Track:** Includes *Neon Overdrive (DroidHero Anthem)* ready to play out of the box without an internet connection.
 
 ### 3. Complete 5-Fret Rhythm Mechanics
-- **Multi-Touch & Keyboard Support:** Simultaneous multi-finger chords, slides, and desktop keyboard bindings (`A S D F G` / `1 2 3 4 5`, `Space` for Star Power, `Shift` for Whammy).
+- **Multi-Touch & Keyboard Support:** Simultaneous multi-finger chords, slides, and desktop keyboard bindings (`A S D F G` / `1 2 3 4 5`, `Space` for Star Power).
 - **Real Chart Difficulty Matching:** Displays *Easy, Medium, Hard,* and *Expert* according to what is actually charted in the song / `enchor.us` metadata, automatically disabling un-charted tiers.
 - **Full Note Types:** Standard Strum Gems, **HOPO (Hammer-On / Pull-Off)** with bright pearl-white crowns, **Tap Notes**, **Chords**, and **Sustain Ribbons**.
 - **Tactile 3D Raised Frets & Sustain Friction FX:** Each fret pops upward in 3D when tapped. On long sustain notes, the round 3D note gem locks and vibrates on the raised fret while the sustain ribbon grinds into its upper rim with a glowing contact seam and continuous friction sparks.
-- **Electric Star Power Overdrive & Whammy Bar:** Build Star Power from star notes and streaks, deploy to gain an immediate **+5 combo boost** + **2× multiplier** (up to **8×**) while crackling high-voltage electric lightning bolts light up both edges of the guitar fretboard, and hold Whammy during sustains for pitch bend and extra Star Power charge.
+- **Electric Star Power Overdrive:** Build Star Power from star notes and streaks, then deploy to gain an immediate **+5 combo boost** + **2× multiplier** (up to **8×**) while crackling high-voltage electric lightning bolts light up both edges of the guitar fretboard.
 - **Guitar Solo Tracker & Live Accuracy:** Automatic solo sections with live hit percentage and end-of-solo score bonuses.
 - **Hit Windows & Audio Calibration:** **No-Fail** toggle, **Strict / Normal / Lenient** timing windows, haptic vibration feedback, tap-to-calibrate audio offset (`-150 ms` to `+150 ms`), and one-tap timing adjustment tips on the results screen.
 
@@ -61,7 +61,6 @@
 | --- | --- | --- |
 | 5 Fret Lanes (G / R / Y / B / O) | Tap / hold lower fretboard lanes (multi-touch) | `A S D F G` or `1 2 3 4 5` |
 | Star Power Overdrive | Tap **STAR / DEPLOY** button (upper-left, at ≥ 50%) | `Space` |
-| Whammy Bar | Hold **WHAMMY** button (upper-right) during sustains | `Shift` |
 | Pause / Back | Tap **II** button (upper-right) / Android Back | `Esc` |
 
 ---
@@ -94,6 +93,7 @@ Automated APK builds for tagged releases (`v*`) are also configured in `.github/
 
 ```text
 DroidHerov2/
+├── LICENSE                    # MIT License — Copyright (c) 2026 ipungsx
 ├── project.godot              # Godot 4.7 config (Portrait HD 720x1600, 60 FPS, 4x MSAA)
 ├── export_presets.cfg         # Android APK export preset (ARM64, ARMv7, x86_64)
 ├── addons/OpusGdextension/    # Ogg Opus audio decoder GDExtension
@@ -110,14 +110,18 @@ DroidHerov2/
     ├── SngParser.gd           # Binary .sng (XOR unmasking), .zip & multi-stem audio loader
     ├── ChartParser.gd         # notes.chart & notes.mid parser (tempo map, HOPO, SP, drums)
     ├── ConcertStage.gd        # 60 FPS visualizers (6 modes) & drum-reactive stage lighting
-    ├── MainMenu.gd            # Portrait smartphone game hub, song select, store & settings
+    ├── MainMenu.gd            # Intro splash, portrait hub, song select, store, settings & about
     ├── Gameplay.gd            # 5-fret highway renderer, electric overdrive & sustain FX
     └── Results.gd             # Post-song rank screen, stats breakdown & timing assistant
 ```
 
 ---
 
-## License & Third-Party Credits
+## Copyright, License & Third-Party Credits
 
-- **OpusGdextension** by Joy-less (included under `addons/OpusGdextension/LICENSE.md`)
-- Community charts and metadata provided via **[enchor.us](https://www.enchor.us/)**
+- **Copyright © 2026 [ipungsx](https://github.com/ipungsx).** All rights reserved. Released under the **[MIT License](LICENSE)**.
+- **Godot Engine 4.7** — MIT License
+- **OpusGdextension** by Joy-less — MIT License (included under `addons/OpusGdextension/LICENSE.md`)
+- **Orbitron & Rajdhani Fonts** — SIL Open Font License (OFL)
+- Community charts and metadata provided via **[enchor.us](https://www.enchor.us/)**. All song charts belong to their respective artists and community charters.
+- *Legal Notice:* DroidHeroV2 is an independent rhythm game created by **ipungsx** and is not affiliated with or endorsed by Activision, RedOctane, or Harmonix.

@@ -1,13 +1,16 @@
+# Copyright (c) 2026 ipungsx (https://github.com/ipungsx)
 extends Control
 
 # Native Portrait HD Smartphone Game Menu for DroidHeroV2 (720x1600):
 # Full-screen single-column mobile game navigation:
-# - SCREEN 0: HOME (Hero logo, stats pill, active song vinyl card, 4 huge full-width buttons)
-# - SCREEN 1: SONG SELECT (Big vertical song cards, sort/import/preview controls, sticky launch bar)
-# - SCREEN 2: DIFFICULTY (2x2 huge difficulty cards, speed & no-fail pills, giant PLAY button)
-# - SCREEN 3: ENCHOR.US STORE (Full-width search bar, large mobile chart cards, pagination)
-# - SCREEN 4: CUSTOMIZE (3 HD Fretboard surface buttons + 5 vertical Theme cards)
-# - SCREEN 5: SETTINGS (Single-column scrollable sliders, hit window, haptics, audio calibration)
+# - SCREEN 0: HOME (Hero logo, stats pill, active song vinyl card, 4 huge full-width buttons, EN/ID & About)
+# - SCREEN 1: SONG SELECT (Big vertical song cards, page_size=10, sort/import/preview controls)
+# - SCREEN 2: DIFFICULTY (2x2 huge difficulty cards matching real chart diffs, No-Fail, giant PLAY button)
+# - SCREEN 3: ENCHOR.US STORE (Full-width search bar, diff filter, page_size=10, mobile chart cards)
+# - SCREEN 4: CUSTOMIZE (6 Background Visualizers, 3 HD Fretboard decks & 5 Arena Themes)
+# - SCREEN 5: SETTINGS (Single-column scrollable sliders, flashing lights toggle, hit window, calibration)
+# - SCREEN 6: ABOUT (Credits, Copyright, Open-Source Licenses & Legal Notice)
+# - SCREEN 7: INTRO SPLASH (By ipungsx / github.com/ipungsx)
 
 enum Screen {
 	HOME = 0,
@@ -15,7 +18,9 @@ enum Screen {
 	DIFFICULTY = 2,
 	ENCHOR = 3,
 	CUSTOMIZE = 4,
-	SETTINGS = 5
+	SETTINGS = 5,
+	ABOUT = 6,
+	INTRO = 7
 }
 
 class VinylDisc extends Control:
@@ -113,7 +118,11 @@ func _ready() -> void:
 	var start_scr := GameState.open_screen_on_menu
 	GameState.open_screen_on_menu = Screen.HOME
 	_build_base()
-	_show_screen(start_scr, false)
+	if not GameState.intro_shown and start_scr == Screen.HOME:
+		GameState.intro_shown = true
+		_show_screen(Screen.INTRO, false)
+	else:
+		_show_screen(start_scr, false)
 
 func _process(delta: float) -> void:
 	if _fps_lbl and is_instance_valid(_fps_lbl):
@@ -267,6 +276,10 @@ func _show_screen(scr: int, animate: bool = true) -> void:
 			_build_customize_screen(page, t)
 		Screen.SETTINGS:
 			_build_settings_screen(page, t)
+		Screen.ABOUT:
+			_build_about_screen(page, t)
+		Screen.INTRO:
+			_build_intro_screen(page, t)
 
 	if animate:
 		page.modulate.a = 0.0
@@ -311,10 +324,25 @@ func _build_home_screen(parent: MarginContainer, t: Dictionary) -> void:
 	root_vb.add_theme_constant_override("separation", 22)
 	parent.add_child(root_vb)
 
-	# 0. Top Language Switcher Row (English / Bahasa Indonesia ONLY)
-	var lang_row := HBoxContainer.new()
-	lang_row.alignment = BoxContainer.ALIGNMENT_END
-	root_vb.add_child(lang_row)
+	# 0. Top Utility Row (About button on left + English/Indonesia toggle on right)
+	var top_row := HBoxContainer.new()
+	top_row.add_theme_constant_override("separation", 12)
+	root_vb.add_child(top_row)
+
+	var about_btn := Button.new()
+	about_btn.text = I18n.t("menu_about")
+	about_btn.custom_minimum_size = Vector2(180, 58)
+	ThemeManager.style_button(about_btn, false, t["accent_2"])
+	about_btn.add_theme_font_size_override("font_size", 22)
+	about_btn.pressed.connect(func():
+		GameState.play_click()
+		_show_screen(Screen.ABOUT)
+	)
+	top_row.add_child(about_btn)
+
+	var top_sp := Control.new()
+	top_sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top_row.add_child(top_sp)
 
 	var lang_btn := Button.new()
 	lang_btn.text = "🌐  EN / ID  •  " + ("INDONESIA" if I18n.current_lang == "id" else "ENGLISH")
@@ -325,7 +353,7 @@ func _build_home_screen(parent: MarginContainer, t: Dictionary) -> void:
 		GameState.play_click()
 		I18n.toggle_language()
 	)
-	lang_row.add_child(lang_btn)
+	top_row.add_child(lang_btn)
 
 	# 1. Centered Hero Logo Header
 	var hero_vb := VBoxContainer.new()
@@ -1703,3 +1731,206 @@ func _build_file_importer() -> void:
 			_populate_song_cards()
 	)
 	add_child(_file_dialog)
+
+# ============================================================================
+# SCREEN 6: ABOUT, CREDITS, COPYRIGHT & LEGAL NOTICE
+# ============================================================================
+func _build_about_screen(parent: MarginContainer, t: Dictionary) -> void:
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 18)
+	parent.add_child(vbox)
+
+	_make_top_bar(vbox, I18n.t("about_title"), Screen.HOME, t)
+
+	var scroll := _make_touch_scroll()
+	vbox.add_child(scroll)
+
+	var content_vb := VBoxContainer.new()
+	content_vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content_vb.mouse_filter = Control.MOUSE_FILTER_PASS
+	content_vb.add_theme_constant_override("separation", 18)
+	scroll.add_child(content_vb)
+
+	# 1. Creator & Copyright Card + Direct GitHub Links
+	var dev_vb := _add_about_card(content_vb, I18n.t("about_dev_hdr"), I18n.t("about_dev_body"), t["accent"], t)
+
+	var btn_gh := Button.new()
+	btn_gh.text = I18n.t("about_open_github")
+	btn_gh.custom_minimum_size = Vector2(0, 72)
+	ThemeManager.style_button(btn_gh, true, t["accent"])
+	btn_gh.add_theme_font_size_override("font_size", 23)
+	btn_gh.pressed.connect(func():
+		GameState.play_click()
+		OS.shell_open("https://github.com/ipungsx")
+	)
+	dev_vb.add_child(btn_gh)
+
+	var btn_repo := Button.new()
+	btn_repo.text = I18n.t("about_open_repo")
+	btn_repo.custom_minimum_size = Vector2(0, 70)
+	ThemeManager.style_button(btn_repo, false, t["accent_2"])
+	btn_repo.add_theme_font_size_override("font_size", 22)
+	btn_repo.pressed.connect(func():
+		GameState.play_click()
+		OS.shell_open("https://github.com/ipungsx/DroidHerov2")
+	)
+	dev_vb.add_child(btn_repo)
+	_make_scroll_pass(dev_vb.get_parent())
+
+	# 2. Credits Card
+	var cred_vb := _add_about_card(content_vb, I18n.t("about_credits_hdr"), I18n.t("about_credits_body"), t["accent_2"], t)
+	_make_scroll_pass(cred_vb.get_parent())
+
+	# 3. Third-Party & Open-Source Licenses Card
+	var oss_vb := _add_about_card(content_vb, I18n.t("about_oss_hdr"), I18n.t("about_oss_body"), t["accent_3"], t)
+	_make_scroll_pass(oss_vb.get_parent())
+
+	# 4. Legal Notice & Disclaimer Card
+	var leg_vb := _add_about_card(content_vb, I18n.t("about_legal_hdr"), I18n.t("about_legal_body"), t["border"], t)
+	_make_scroll_pass(leg_vb.get_parent())
+
+func _add_about_card(parent: VBoxContainer, hdr_txt: String, body_txt: String, col: Color, t: Dictionary) -> VBoxContainer:
+	var card := PanelContainer.new()
+	card.add_theme_stylebox_override("panel", ThemeManager.make_card_style(t["panel"], col, 22, 2, 10))
+	parent.add_child(card)
+
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 12)
+	card.add_child(vb)
+
+	var hdr := Label.new()
+	hdr.text = hdr_txt
+	if ThemeManager.font_display:
+		hdr.add_theme_font_override("font", ThemeManager.font_display)
+	hdr.add_theme_font_size_override("font_size", 25)
+	hdr.add_theme_color_override("font_color", col)
+	vb.add_child(hdr)
+
+	var body := Label.new()
+	body.text = body_txt
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if ThemeManager.font_body:
+		body.add_theme_font_override("font", ThemeManager.font_body)
+	body.add_theme_font_size_override("font_size", 23)
+	body.add_theme_color_override("font_color", t["text"])
+	vb.add_child(body)
+	return vb
+
+# ============================================================================
+# SCREEN 7: INTRO SPLASH PAGE (BY IPUNGSX / GITHUB.COM/IPUNGSX)
+# ============================================================================
+func _build_intro_screen(parent: MarginContainer, t: Dictionary) -> void:
+	var root := Control.new()
+	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	parent.add_child(root)
+
+	var center_vb := VBoxContainer.new()
+	center_vb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center_vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	center_vb.add_theme_constant_override("separation", 24)
+	center_vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(center_vb)
+
+	# Spinning Vinyl Emblem
+	var disc_wrap := CenterContainer.new()
+	disc_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	center_vb.add_child(disc_wrap)
+
+	var disc := VinylDisc.new()
+	disc.accent = t["accent"]
+	disc.accent2 = t["accent_2"]
+	disc.spinning = true
+	disc.custom_minimum_size = Vector2(210, 210)
+	disc_wrap.add_child(disc)
+
+	# Main Title
+	var title := Label.new()
+	title.text = "DROIDHERO V2"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if ThemeManager.font_display:
+		title.add_theme_font_override("font", ThemeManager.font_display)
+	title.add_theme_font_size_override("font_size", 64)
+	title.add_theme_color_override("font_color", t["accent"])
+	center_vb.add_child(title)
+
+	# Creator Credit Card: By ipungsx + github.com/ipungsx
+	var brand_card := PanelContainer.new()
+	brand_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	brand_card.add_theme_stylebox_override("panel", ThemeManager.make_card_style(t["panel_alt"], t["accent_2"], 24, 2, 16))
+	center_vb.add_child(brand_card)
+
+	var bvb := VBoxContainer.new()
+	bvb.alignment = BoxContainer.ALIGNMENT_CENTER
+	bvb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bvb.add_theme_constant_override("separation", 10)
+	brand_card.add_child(bvb)
+
+	var by_lbl := Label.new()
+	by_lbl.text = I18n.t("intro_by")
+	by_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	by_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if ThemeManager.font_display:
+		by_lbl.add_theme_font_override("font", ThemeManager.font_display)
+	by_lbl.add_theme_font_size_override("font_size", 38)
+	by_lbl.add_theme_color_override("font_color", Color.WHITE)
+	bvb.add_child(by_lbl)
+
+	var url_lbl := Label.new()
+	url_lbl.text = I18n.t("intro_url")
+	url_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	url_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if ThemeManager.font_display:
+		url_lbl.add_theme_font_override("font", ThemeManager.font_display)
+	url_lbl.add_theme_font_size_override("font_size", 28)
+	url_lbl.add_theme_color_override("font_color", t["accent_2"])
+	bvb.add_child(url_lbl)
+
+	var copy_lbl := Label.new()
+	copy_lbl.text = "Copyright © 2026 ipungsx"
+	copy_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	copy_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if ThemeManager.font_body:
+		copy_lbl.add_theme_font_override("font", ThemeManager.font_body)
+	copy_lbl.add_theme_font_size_override("font_size", 22)
+	copy_lbl.add_theme_color_override("font_color", t["text_dim"])
+	bvb.add_child(copy_lbl)
+
+	var tap_lbl := Label.new()
+	tap_lbl.text = I18n.t("intro_tap")
+	tap_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tap_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if ThemeManager.font_body:
+		tap_lbl.add_theme_font_override("font", ThemeManager.font_body)
+	tap_lbl.add_theme_font_size_override("font_size", 22)
+	tap_lbl.add_theme_color_override("font_color", Color(1, 1, 1, 0.55))
+	center_vb.add_child(tap_lbl)
+
+	# Full-screen invisible button so tapping anywhere skips intro immediately
+	var skip_btn := Button.new()
+	skip_btn.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	skip_btn.flat = true
+	var empty_sb := StyleBoxEmpty.new()
+	skip_btn.add_theme_stylebox_override("normal", empty_sb)
+	skip_btn.add_theme_stylebox_override("hover", empty_sb)
+	skip_btn.add_theme_stylebox_override("pressed", empty_sb)
+	skip_btn.add_theme_stylebox_override("focus", empty_sb)
+	skip_btn.pressed.connect(func():
+		if _current_screen == Screen.INTRO:
+			GameState.play_click()
+			_show_screen(Screen.HOME, true)
+	)
+	root.add_child(skip_btn)
+
+	# Fade-in animation + automatic transition to Home after 2.6 seconds
+	root.modulate.a = 0.0
+	var tw := create_tween()
+	tw.tween_property(root, "modulate:a", 1.0, 0.45).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+	var timer := get_tree().create_timer(2.6)
+	timer.timeout.connect(func():
+		if is_instance_valid(self) and _current_screen == Screen.INTRO:
+			_show_screen(Screen.HOME, true)
+	)
+
