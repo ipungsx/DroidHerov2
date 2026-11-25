@@ -290,7 +290,13 @@ static func _finalize_chart(
 		cur_bpm = float(tp["bpm"])
 		tempos.append({"tick": tk, "bpm": cur_bpm, "time": cur_time})
 
-	# Auto-downchart missing difficulties from highest available difficulty so every song has Easy/Medium/Hard/Expert!
+	# Record exact difficulties natively charted in the song file
+	var charted_diffs: Array[String] = []
+	for d in ["Easy", "Medium", "Hard", "Expert"]:
+		if not raw_tracks[d].is_empty():
+			charted_diffs.append(d)
+
+	# Keep safe fallback tracks in case a player launches an unmapped track directly
 	var highest_avail := ""
 	for d in DIFF_ORDER:
 		if not raw_tracks[d].is_empty():
@@ -450,6 +456,7 @@ static func _finalize_chart(
 		"sections": sections,
 		"beat_lines": beat_lines,
 		"tracks": tracks,
+		"charted_diffs": charted_diffs,
 		"drums": drums
 	}
 

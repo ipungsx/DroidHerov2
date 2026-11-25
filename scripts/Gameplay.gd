@@ -128,7 +128,8 @@ func _ready() -> void:
 	_spark_col.resize(MAX_SPARKS)
 	_spark_life.fill(0.0)
 
-	_speed_scale = clampf(float(GameState.practice_speed), 0.5, 1.5)
+	_judge_text = I18n.t("get_ready")
+	_speed_scale = 1.0
 	var note_spd := clampf(float(GameState.settings.get("note_speed", 1.0)), 0.6, 2.0)
 	_visible_ahead_sec = 1.38 / note_spd
 	_audio_offset_sec = float(GameState.settings.get("audio_offset_ms", 0.0)) / 1000.0
@@ -217,7 +218,7 @@ func _build_scene_tree() -> void:
 	sc_vbox.add_child(meta_hb)
 
 	_lbl_section = Label.new()
-	_lbl_section.text = GameState.current_difficulty.to_upper() + _speed_tag()
+	_lbl_section.text = GameState.current_difficulty.to_upper()
 	_lbl_section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_lbl_section.clip_text = true
 	if ThemeManager.font_body:
@@ -315,11 +316,11 @@ func _build_scene_tree() -> void:
 
 	# Upper-Left Star Power Trigger Button (neatly above horizon)
 	_sp_btn = Button.new()
-	_sp_btn.text = "STAR\n0%"
+	_sp_btn.text = I18n.t("sp_idle") % 0
 	_sp_btn.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_sp_btn.offset_left = 14
 	_sp_btn.offset_top = 186
-	_sp_btn.offset_right = 170
+	_sp_btn.offset_right = 176
 	_sp_btn.offset_bottom = 278
 	ThemeManager.style_button(_sp_btn, true, t["star_power"])
 	_sp_btn.add_theme_font_size_override("font_size", 21)
@@ -328,7 +329,7 @@ func _build_scene_tree() -> void:
 
 	# Upper-Right Whammy Bar Button (neatly above horizon)
 	_whammy_btn = Button.new()
-	_whammy_btn.text = "WHAMMY\nBAR"
+	_whammy_btn.text = I18n.t("whammy_lbl")
 	_whammy_btn.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	_whammy_btn.offset_left = -170
 	_whammy_btn.offset_top = 186
@@ -360,7 +361,7 @@ func _build_overlays(t: Dictionary) -> void:
 	_pause_panel.add_child(pv)
 
 	var ptitle := Label.new()
-	ptitle.text = "STAGE PAUSED"
+	ptitle.text = I18n.t("stage_paused")
 	ptitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if ThemeManager.font_display:
 		ptitle.add_theme_font_override("font", ThemeManager.font_display)
@@ -369,25 +370,24 @@ func _build_overlays(t: Dictionary) -> void:
 	pv.add_child(ptitle)
 
 	var btn_resume := Button.new()
-	btn_resume.text = "▶  RESUME SHOW"
+	btn_resume.text = I18n.t("resume_show")
 	btn_resume.custom_minimum_size = Vector2(0, 76)
 	ThemeManager.style_button(btn_resume, true)
 	btn_resume.pressed.connect(_toggle_pause)
 	pv.add_child(btn_resume)
 
 	var btn_restart := Button.new()
-	btn_restart.text = "↻  RESTART SONG"
+	btn_restart.text = I18n.t("restart_song")
 	btn_restart.custom_minimum_size = Vector2(0, 74)
 	ThemeManager.style_button(btn_restart, false)
 	btn_restart.pressed.connect(func(): get_tree().reload_current_scene())
 	pv.add_child(btn_restart)
 
 	var btn_quit := Button.new()
-	btn_quit.text = "◀  BACK TO SONG LIST"
+	btn_quit.text = I18n.t("back_to_songs")
 	btn_quit.custom_minimum_size = Vector2(0, 74)
 	ThemeManager.style_button(btn_quit, false, t["accent_2"])
 	btn_quit.pressed.connect(func():
-		GameState.practice_speed = 1.0
 		GameState.practice_start_sec = 0.0
 		GameState.open_screen_on_menu = 1
 		get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
@@ -411,7 +411,7 @@ func _build_overlays(t: Dictionary) -> void:
 	_fail_panel.add_child(fv)
 
 	var ftitle := Label.new()
-	ftitle.text = "SONG FAILED!"
+	ftitle.text = I18n.t("song_failed")
 	ftitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if ThemeManager.font_display:
 		ftitle.add_theme_font_override("font", ThemeManager.font_display)
@@ -420,7 +420,7 @@ func _build_overlays(t: Dictionary) -> void:
 	fv.add_child(ftitle)
 
 	var fsub := Label.new()
-	fsub.text = "Rock Meter depleted! Try No-Fail mode or Practice 75%."
+	fsub.text = I18n.t("fail_hint")
 	fsub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	fsub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	if ThemeManager.font_body:
@@ -429,14 +429,14 @@ func _build_overlays(t: Dictionary) -> void:
 	fv.add_child(fsub)
 
 	var btn_retry := Button.new()
-	btn_retry.text = "↻  TRY AGAIN"
+	btn_retry.text = I18n.t("try_again")
 	btn_retry.custom_minimum_size = Vector2(0, 76)
 	ThemeManager.style_button(btn_retry, true, Color(1.0, 0.28, 0.35))
 	btn_retry.pressed.connect(func(): get_tree().reload_current_scene())
 	fv.add_child(btn_retry)
 
 	var btn_fquit := Button.new()
-	btn_fquit.text = "◀  EXIT TO SONG LIST"
+	btn_fquit.text = I18n.t("exit_songs")
 	btn_fquit.custom_minimum_size = Vector2(0, 72)
 	ThemeManager.style_button(btn_fquit, false)
 	btn_fquit.pressed.connect(func():
@@ -444,11 +444,6 @@ func _build_overlays(t: Dictionary) -> void:
 		get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
 	)
 	fv.add_child(btn_fquit)
-
-func _speed_tag() -> String:
-	if absf(_speed_scale - 1.0) > 0.02:
-		return " • " + str(int(round(_speed_scale * 100.0))) + "%"
-	return ""
 
 func _load_active_song() -> void:
 	if GameState.current_song.is_empty():
@@ -580,12 +575,20 @@ func _process(delta: float) -> void:
 		_handle_section_change(next_sec)
 		_section_cursor += 1
 
-	# Star Power drain
+	# Star Power drain & continuous festive electric rail sparks
 	if _sp_active:
 		_star_power -= delta * 12.5
 		if _star_power <= 0.0:
 			_star_power = 0.0
 			_sp_active = false
+		elif size.x > 10.0 and randf() < delta * 26.0:
+			var side := -1.0 if randf() < 0.5 else 1.0
+			var ty := randf_range(0.08, 0.92)
+			var y_pos := lerpf(size.y * 0.145, size.y * 0.996, ty)
+			var hw := lerpf(size.x * 0.255, size.x * 0.498, ty)
+			var x_pos := size.x * 0.5 + side * hw
+			var sp_c := Color(0.55, 0.96, 1.0) if randf() < 0.7 else Color(1.0, 0.96, 0.65)
+			_spawn_spark(x_pos, y_pos, side * randf_range(45.0, 165.0), randf_range(-190.0, 70.0), randf_range(0.14, 0.28), sp_c)
 	_stage.star_power_active = _sp_active
 	_stage.combo_level = _base_multiplier()
 	_update_sp_button()
@@ -698,7 +701,7 @@ func _handle_section_change(next_sec: String) -> void:
 		_lbl_solo.visible = false
 
 	_current_section = next_sec
-	_lbl_section.text = GameState.current_difficulty.to_upper() + " • " + _current_section.to_upper() + _speed_tag()
+	_lbl_section.text = GameState.current_difficulty.to_upper() + " • " + _current_section.to_upper()
 
 	if "solo" in next_sec.to_lower():
 		_in_solo = true
@@ -1018,25 +1021,36 @@ func _effective_multiplier() -> int:
 func _try_activate_star_power() -> void:
 	if not _sp_active and _star_power >= 50.0:
 		_sp_active = true
+		_combo += 5
+		if _combo > _max_streak:
+			_max_streak = _combo
 		GameState.play_star_sfx()
 		GameState.trigger_haptic(45)
 		_stage.trigger_drum(0, 1.45)
 		_stage.trigger_drum(1, 1.45)
-		_judge_text = "STAR POWER! 2X"
+		_judge_text = I18n.t("overdrive_banner")
 		_judge_col = ThemeManager.get_theme_data()["star_power"]
-		_judge_timer = 1.1
+		_judge_timer = 1.25
+		if size.x > 10.0:
+			for k in range(16):
+				var side := -1.0 if (k % 2 == 0) else 1.0
+				var ty := float(k / 2) / 8.0
+				var yp := lerpf(size.y * 0.18, size.y * 0.94, ty)
+				var hwp := lerpf(size.x * 0.255, size.x * 0.498, ty)
+				var xp := size.x * 0.5 + side * hwp
+				_spawn_spark(xp, yp, side * randf_range(90.0, 240.0), randf_range(-210.0, 60.0), randf_range(0.20, 0.36), Color(0.50, 0.98, 1.0))
 
 func _update_sp_button() -> void:
 	var pct := int(round(_star_power))
 	if _sp_active:
-		_sp_btn.text = "⚡ OVERDRIVE!\n" + str(pct) + "%"
+		_sp_btn.text = I18n.t("sp_on") % pct
 		_sp_btn.modulate = Color(1.2, 1.2, 1.2, 1.0)
 	elif _star_power >= 50.0:
 		var pulse := 0.88 + 0.18 * sin(_song_time * 9.0)
-		_sp_btn.text = "⚡ DEPLOY!\n" + str(pct) + "%"
+		_sp_btn.text = I18n.t("sp_ready") % pct
 		_sp_btn.modulate = Color(pulse, 1.0, 1.0, 1.0)
 	else:
-		_sp_btn.text = "STAR POWER\n" + str(pct) + "%"
+		_sp_btn.text = I18n.t("sp_idle") % pct
 		_sp_btn.modulate = Color(0.75, 0.78, 0.85, 0.88)
 
 func _update_hud_numbers() -> void:
@@ -1123,14 +1137,13 @@ func _complete_song() -> void:
 		"hit_samples": _hit_offsets_ms.size(),
 		"fc": is_fc,
 		"difficulty": GameState.current_difficulty,
-		"practice": (absf(_speed_scale - 1.0) > 0.02 or GameState.practice_start_sec > 0.01)
+		"practice": (GameState.practice_start_sec > 0.01)
 	}
 	if not bool(res["practice"]):
 		res["new_best"] = GameState.record_score(str(GameState.current_song.get("id", "song")), GameState.current_difficulty, res)
 	else:
 		res["new_best"] = false
 	GameState.last_result = res
-	GameState.practice_speed = 1.0
 	GameState.practice_start_sec = 0.0
 	get_tree().change_scene_to_file("res://scenes/Results.tscn")
 
@@ -1253,6 +1266,10 @@ func _draw_highway() -> void:
 	_highway_canvas.draw_line(Vector2(cx + top_hw + 3, top_y), Vector2(cx + bot_hw + 4, bot_y), Color(0.18, 0.20, 0.26, 0.95), rail_w + 4.0)
 	_highway_canvas.draw_line(Vector2(cx - top_hw, top_y), Vector2(cx - bot_hw, bot_y), edge_col, rail_w)
 	_highway_canvas.draw_line(Vector2(cx + top_hw, top_y), Vector2(cx + bot_hw, bot_y), edge_col, rail_w)
+
+	# 3b. Festive High-Voltage Electric Lightning along BOTH Left & Right Guitar Edges during Overdrive!
+	if _sp_active:
+		_draw_overdrive_lightning(cx, top_y, bot_y, top_hw, bot_hw, t)
 
 	# 4. Upper Side Meters (Rock Meter & Star Power tucked cleanly in upper half!)
 	_draw_upper_side_meters(cx, top_y, strike_y, top_hw, strike_hw, t)
@@ -1634,3 +1651,65 @@ func _draw_ellipse_arc(center: Vector2, rx: float, ry: float, col: Color, width:
 	_highway_canvas.draw_set_transform(center, 0.0, Vector2(1.0, ry / maxf(0.01, rx)))
 	_highway_canvas.draw_arc(Vector2.ZERO, rx, 0.0, TAU, 36, col, width)
 	_highway_canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+func _draw_overdrive_lightning(cx: float, top_y: float, bot_y: float, top_hw: float, bot_hw: float, t: Dictionary) -> void:
+	var sp_c: Color = t["star_power"]
+	var elec_blue := Color(0.22, 0.86, 1.0, 1.0)
+	var elec_violet := Color(0.62, 0.45, 1.0, 0.85)
+	var step_t: float = floorf(_song_time * 24.0)
+	var segs := 18
+
+	for side_idx in range(2):
+		var side := -1.0 if side_idx == 0 else 1.0
+		var x_top := cx + side * top_hw
+		var x_bot := cx + side * bot_hw
+
+		# 1. Outer high-voltage plasma glow ribbon hugging the rail
+		_quad_pts[0] = Vector2(x_top - side * 4.0, top_y)
+		_quad_pts[1] = Vector2(x_top + side * 34.0, top_y)
+		_quad_pts[2] = Vector2(x_bot + side * 46.0, bot_y)
+		_quad_pts[3] = Vector2(x_bot - side * 4.0, bot_y)
+		_quad_cols[0] = Color(sp_c.r, sp_c.g, sp_c.b, 0.42)
+		_quad_cols[1] = Color(sp_c.r, sp_c.g, sp_c.b, 0.0)
+		_quad_cols[2] = Color(elec_blue.r, elec_blue.g, elec_blue.b, 0.0)
+		_quad_cols[3] = Color(elec_blue.r, elec_blue.g, elec_blue.b, 0.52)
+		_highway_canvas.draw_polygon(_quad_pts, _quad_cols)
+
+		# 2. Primary + Secondary crackling jagged lightning bolts along the rail
+		for bolt in range(2):
+			var prev_pt := Vector2(x_top, top_y)
+			var amp := 16.0 if bolt == 0 else 25.0
+			var glow_col := Color(elec_blue.r, elec_blue.g, elec_blue.b, 0.65) if bolt == 0 else Color(elec_violet.r, elec_violet.g, elec_violet.b, 0.55)
+			var core_col := Color(0.96, 1.0, 1.0, 0.98) if bolt == 0 else Color(0.75, 0.95, 1.0, 0.82)
+			var glow_w := 9.0 if bolt == 0 else 6.0
+			var core_w := 3.2 if bolt == 0 else 2.0
+
+			for s in range(1, segs + 1):
+				var frac := float(s) / float(segs)
+				var base_x := lerpf(x_top, x_bot, frac)
+				var base_y := lerpf(top_y, bot_y, frac)
+				var seed_v := step_t * 3.7 + float(s) * 11.3 + float(side_idx) * 29.1 + float(bolt) * 17.7
+				var jitter := sin(seed_v * 1.9) * cos(seed_v * 0.73)
+				var edge_fade := sin(frac * PI)
+				var off_x := side * (6.0 + absf(jitter) * amp * edge_fade) + jitter * 12.0 * edge_fade
+				var cur_pt := Vector2(base_x + off_x, base_y)
+
+				_highway_canvas.draw_line(prev_pt, cur_pt, glow_col, glow_w)
+				_highway_canvas.draw_line(prev_pt, cur_pt, core_col, core_w)
+
+				# Branching outward lightning forks at energetic vertices
+				if bolt == 0 and s > 1 and s < segs and absf(jitter) > 0.52:
+					var fork_mid := cur_pt + Vector2(side * (16.0 + 18.0 * absf(jitter)), 18.0 * sin(seed_v * 2.3))
+					var fork_tip := fork_mid + Vector2(side * 16.0, 22.0 * cos(seed_v * 1.7))
+					_highway_canvas.draw_line(cur_pt, fork_mid, glow_col, 4.5)
+					_highway_canvas.draw_line(cur_pt, fork_mid, core_col, 1.8)
+					_highway_canvas.draw_line(fork_mid, fork_tip, Color(sp_c.r, sp_c.g, sp_c.b, 0.65), 2.2)
+
+				# Pulsing electric node flash
+				if bolt == 0 and (s % 4 == 0):
+					var node_r := 4.0 + 3.5 * absf(sin(seed_v))
+					_highway_canvas.draw_circle(cur_pt, node_r * 1.9, Color(sp_c.r, sp_c.g, sp_c.b, 0.42))
+					_highway_canvas.draw_circle(cur_pt, node_r, Color(1.0, 1.0, 1.0, 0.92))
+
+				prev_pt = cur_pt
+

@@ -4,18 +4,21 @@ const SAVE_PATH := "user://droidhero_v2_save.json"
 const SONGS_DIR := "user://songs"
 
 var settings: Dictionary = {
+	"language": "",            # "" = system default, "en" or "id"
 	"theme": "neon_cyber",
-	"board_style": "carbon",  # carbon, rosewood, obsidian
-	"hit_window": "normal",   # strict, normal, lenient
-	"haptics": true,          # subtle smartphone vibration on miss / star power
-	"note_speed": 1.0,        # 0.7x .. 1.8x highway scroll speed
-	"audio_offset_ms": 0.0,   # -150 .. +150 ms calibration
-	"no_fail": false,         # Practice / casual mode without rock-out fail
-	"strum_mode": false,      # false = Tap Lanes (mobile friendly), true = Fret + Strum bar
+	"visualizer": "concert_arena", # concert_arena, neon_waveform, radial_spectrum, cyber_rain, plasma_aurora, minimal_dark
+	"stage_lights_flash": true,    # toggleable strobe/blinking lights (turn off for slow songs)
+	"board_style": "carbon",   # carbon, rosewood, obsidian
+	"hit_window": "normal",    # strict, normal, lenient
+	"haptics": true,           # subtle smartphone vibration on miss / star power
+	"note_speed": 1.0,         # 0.7x .. 1.8x highway scroll speed
+	"audio_offset_ms": 0.0,    # -150 .. +150 ms calibration
+	"no_fail": false,          # casual mode without rock-out fail
+	"strum_mode": false,
 	"sfx_volume": 0.85,
 	"music_volume": 1.0,
 	"show_fps": true,
-	"light_intensity": 1.0    # 0.4 .. 1.4 stage light intensity
+	"light_intensity": 1.0     # 0.4 .. 1.5 stage light intensity
 }
 
 var highscores: Dictionary = {} # key: song_id + ":" + diff -> {score, stars, accuracy, max_streak, fc}
@@ -24,7 +27,6 @@ var library: Array[Dictionary] = []
 # Active session selection
 var current_song: Dictionary = {}
 var current_difficulty: String = "Expert" # Easy, Medium, Hard, Expert
-var practice_speed: float = 1.0           # 0.5, 0.75, 1.0
 var practice_start_sec: float = 0.0
 var last_result: Dictionary = {}
 var open_screen_on_menu: int = 0          # 0=Home, 1=SongList, 2=Difficulty
@@ -42,6 +44,7 @@ func _ready() -> void:
 	_setup_audio_buses()
 	_build_sfx()
 	load_data()
+	I18n.init_from_settings(str(settings.get("language", "")))
 	ThemeManager.current_theme_id = settings.get("theme", "neon_cyber")
 	scan_library()
 

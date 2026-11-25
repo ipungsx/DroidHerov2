@@ -34,7 +34,7 @@ func _process(_delta: float) -> void:
 		if st == HTTPClient.STATUS_BODY or st == HTTPClient.STATUS_CONNECTED or st == HTTPClient.STATUS_REQUESTING:
 			download_progress.emit(_active_dl_md5, _dl_http.get_downloaded_bytes(), _dl_http.get_body_size())
 
-func search_charts(query: String = "*", page: int = 1, difficulty = null, per_page: int = 20) -> void:
+func search_charts(query: String = "*", page: int = 1, difficulty = null, per_page: int = 10) -> void:
 	_search_http.cancel_request()
 	var q := query.strip_edges()
 	if q == "":
@@ -53,11 +53,37 @@ func search_charts(query: String = "*", page: int = 1, difficulty = null, per_pa
 	var headers := PackedStringArray([
 		"Content-Type: application/json",
 		"Accept: application/json",
-		"User-Agent: DroidHeroV2/2.0"
+		"User-Agent: DroidHeroV2/2.4"
 	])
 	var err := _search_http.request(API_SEARCH_URL, headers, HTTPClient.METHOD_POST, JSON.stringify(payload))
 	if err != OK:
 		search_completed.emit([], 0, page, "Network request error (" + str(err) + ")")
+
+func _extract_enchor_diffs(item: Dictionary) -> Array[String]:
+	var found := {}
+	var nd = item.get("notesData", null)
+	if typeof(nd) == TYPE_DICTIONARY:
+		var counts = nd.get("noteCounts", [])
+		if typeof(counts) == TYPE_ARRAY:
+			for nc in counts:
+				if typeof(nc) != TYPE_DICTIONARY:
+					continue
+				var inst := str(nc.get("instrument", "")).to_lower()
+				if inst != "guitar" and inst != "":
+					continue
+				if int(nc.get("count", 0)) <= 0:
+					continue
+				var d := str(nc.get("difficulty", "")).to_lower()
+				match d:
+					"easy": found["Easy"] = true
+					"medium": found["Medium"] = true
+					"hard": found["Hard"] = true
+					"expert": found["Expert"] = true
+	var out: Array[String] = []
+	for k in ["Easy", "Medium", "Hard", "Expert"]:
+		if found.has(k):
+			out.append(k)
+	return out
 
 func _on_search_done(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	if result != HTTPRequest.RESULT_SUCCESS or (response_code != 200 and response_code != 201):
@@ -75,6 +101,7 @@ func _on_search_done(result: int, response_code: int, _headers: PackedStringArra
 		var md5 := str(item.get("md5", ""))
 		if md5 == "":
 			continue
+		var avail_diffs := _extract_enchor_diffs(item)
 		clean_list.append({
 			"id": md5,
 			"md5": md5,
@@ -88,6 +115,7 @@ func _on_search_done(result: int, response_code: int, _headers: PackedStringArra
 			"song_length": int(item.get("song_length", 180000)),
 			"diff_guitar": int(item.get("diff_guitar", 3)),
 			"diff_drums": int(item.get("diff_drums", -1)),
+			"available_diffs": avail_diffs,
 			"hasVideoBackground": bool(item.get("hasVideoBackground", false))
 		})
 	search_completed.emit(clean_list, int(parsed.get("found", clean_list.size())), int(parsed.get("page", 1)), "")

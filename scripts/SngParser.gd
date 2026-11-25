@@ -66,6 +66,53 @@ static func extract_file_bytes(path: String, hdr: Dictionary, filename: String) 
 			return unmask_bytes(buf, mask)
 	return PackedByteArray()
 
+static func get_available_difficulties(song_info: Dictionary) -> Array[String]:
+	var saved = song_info.get("available_diffs", [])
+	if typeof(saved) == TYPE_ARRAY and not saved.is_empty():
+		var out: Array[String] = []
+		for d in saved:
+			var ds := str(d)
+			if ds in ["Easy", "Medium", "Hard", "Expert"] and not out.has(ds):
+				out.append(ds)
+		if not out.is_empty():
+			return out
+
+	# Inspect actual chart inside .sng or loose folder without decoding audio
+	var chart_data: Dictionary = {}
+	if song_info.has("sng_path"):
+		var sng_path := str(song_info["sng_path"])
+		var hdr := peek_header(sng_path)
+		if not hdr.is_empty():
+			for fi in hdr.get("files", []):
+				var fn := str(fi["name"]).to_lower()
+				if fn.ends_with(".chart"):
+					var raw := extract_file_bytes(sng_path, hdr, str(fi["name"]))
+					if not raw.is_empty():
+						chart_data = ChartParser.parse_chart_text(raw.get_string_from_utf8())
+						break
+				elif fn.ends_with(".mid") or fn.ends_with(".midi"):
+					var raw := extract_file_bytes(sng_path, hdr, str(fi["name"]))
+					if not raw.is_empty():
+						chart_data = ChartParser.parse_midi_bytes(raw)
+						break
+	elif song_info.has("chart_path"):
+		var cpath := str(song_info["chart_path"])
+		var cf := FileAccess.open(cpath, FileAccess.READ)
+		if cf:
+			if cpath.to_lower().ends_with(".chart"):
+				chart_data = ChartParser.parse_chart_text(cf.get_as_text())
+			else:
+				chart_data = ChartParser.parse_midi_bytes(cf.get_buffer(cf.get_length()))
+
+	var charted = chart_data.get("charted_diffs", [])
+	var res: Array[String] = []
+	if typeof(charted) == TYPE_ARRAY:
+		for d in charted:
+			res.append(str(d))
+	if res.is_empty():
+		return ["Easy", "Medium", "Hard", "Expert"]
+	return res
+
 static func load_song_package(song_info: Dictionary) -> Dictionary:
 	# Returns { "chart_data": Dictionary, "streams": Array[AudioStream], "album_tex": Texture2D, "error": String }
 	if song_info.get("bundled", false) or song_info.has("chart_path"):

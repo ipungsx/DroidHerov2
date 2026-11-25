@@ -51,13 +51,21 @@ class VinylDisc extends Control:
 		draw_arc(c, r * 0.31, 0.0, TAU, 40, Color.WHITE, 2.2)
 		draw_circle(c, r * 0.09, Color(0.03, 0.03, 0.06, 1.0))
 
+const PAGE_SIZE := 10
+
 var _stage: ConcertStage
 var _screen_holder: Control
 var _current_screen: int = Screen.HOME
 var _sort_mode: int = 0
+var _local_page: int = 1
+var _local_total_pages: int = 1
 
 # Song Select refs
 var _lib_list_vbox: VBoxContainer
+var _lib_scroll: ScrollContainer
+var _lib_page_lbl: Label
+var _lib_btn_prev: Button
+var _lib_btn_next: Button
 var _sel_banner_lbl: Label
 var _vinyl: VinylDisc
 var _preview_player: AudioStreamPlayer
@@ -68,8 +76,14 @@ var _btn_preview: Button
 var _search_input: LineEdit
 var _enchor_status: Label
 var _enchor_list_vbox: VBoxContainer
+var _enchor_scroll: ScrollContainer
 var _enchor_page: int = 1
+var _enchor_total_pages: int = 1
 var _enchor_last_query: String = "*"
+var _enchor_diff_filter: String = ""
+var _enchor_page_lbl: Label
+var _enchor_btn_prev: Button
+var _enchor_btn_next: Button
 var _dl_modal: PanelContainer
 var _dl_label: Label
 var _dl_bar: ProgressBar
@@ -86,6 +100,7 @@ var _fps_lbl: Label
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	ThemeManager.theme_changed.connect(_on_theme_changed)
+	I18n.language_changed.connect(_on_language_changed)
 	EnchorClient.search_completed.connect(_on_enchor_results)
 	EnchorClient.download_progress.connect(_on_dl_progress)
 	EnchorClient.download_completed.connect(_on_dl_completed)
@@ -141,6 +156,36 @@ func _on_theme_changed(_id: String) -> void:
 	_build_base()
 	_show_screen(keep, false)
 
+func _on_language_changed(_lang: String) -> void:
+	var keep := _current_screen
+	_stop_preview()
+	_build_base()
+	_show_screen(keep, false)
+
+func _make_touch_scroll() -> ScrollContainer:
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.follow_focus = false
+	scroll.scroll_deadzone = 12
+	return scroll
+
+func _make_scroll_pass(ctrl: Control) -> void:
+	if ctrl is HSlider:
+		return
+	if ctrl is BaseButton:
+		ctrl.mouse_filter = Control.MOUSE_FILTER_PASS
+		(ctrl as BaseButton).action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
+	elif ctrl is Label or ctrl is TextureRect or ctrl is ColorRect:
+		ctrl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	else:
+		ctrl.mouse_filter = Control.MOUSE_FILTER_PASS
+	for child in ctrl.get_children():
+		if child is Control:
+			_make_scroll_pass(child as Control)
+
 func _build_base() -> void:
 	for c in get_children():
 		c.queue_free()
@@ -171,7 +216,7 @@ func _stop_preview() -> void:
 	if _vinyl and is_instance_valid(_vinyl):
 		_vinyl.spinning = false
 	if _btn_preview and is_instance_valid(_btn_preview):
-		_btn_preview.text = "🔊 PREVIEW"
+		_btn_preview.text = I18n.t("preview")
 
 func _toggle_song_preview() -> void:
 	if _preview_active:
@@ -188,7 +233,7 @@ func _toggle_song_preview() -> void:
 	if _vinyl and is_instance_valid(_vinyl):
 		_vinyl.spinning = true
 	if _btn_preview and is_instance_valid(_btn_preview):
-		_btn_preview.text = "■ STOP"
+		_btn_preview.text = I18n.t("stop_preview")
 
 func _show_screen(scr: int, animate: bool = true) -> void:
 	if scr != Screen.SONGS:
@@ -263,13 +308,29 @@ func _make_top_bar(parent: VBoxContainer, title_txt: String, back_target: int, t
 # ============================================================================
 func _build_home_screen(parent: MarginContainer, t: Dictionary) -> void:
 	var root_vb := VBoxContainer.new()
-	root_vb.add_theme_constant_override("separation", 24)
+	root_vb.add_theme_constant_override("separation", 22)
 	parent.add_child(root_vb)
+
+	# 0. Top Language Switcher Row (English / Bahasa Indonesia ONLY)
+	var lang_row := HBoxContainer.new()
+	lang_row.alignment = BoxContainer.ALIGNMENT_END
+	root_vb.add_child(lang_row)
+
+	var lang_btn := Button.new()
+	lang_btn.text = "🌐  EN / ID  •  " + ("INDONESIA" if I18n.current_lang == "id" else "ENGLISH")
+	lang_btn.custom_minimum_size = Vector2(280, 58)
+	ThemeManager.style_button(lang_btn, false, t["accent"])
+	lang_btn.add_theme_font_size_override("font_size", 22)
+	lang_btn.pressed.connect(func():
+		GameState.play_click()
+		I18n.toggle_language()
+	)
+	lang_row.add_child(lang_btn)
 
 	# 1. Centered Hero Logo Header
 	var hero_vb := VBoxContainer.new()
 	hero_vb.alignment = BoxContainer.ALIGNMENT_CENTER
-	hero_vb.add_theme_constant_override("separation", 6)
+	hero_vb.add_theme_constant_override("separation", 4)
 	root_vb.add_child(hero_vb)
 
 	var logo := Label.new()
@@ -277,16 +338,16 @@ func _build_home_screen(parent: MarginContainer, t: Dictionary) -> void:
 	logo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if ThemeManager.font_display:
 		logo.add_theme_font_override("font", ThemeManager.font_display)
-	logo.add_theme_font_size_override("font_size", 74)
+	logo.add_theme_font_size_override("font_size", 72)
 	logo.add_theme_color_override("font_color", t["accent"])
 	hero_vb.add_child(logo)
 
 	var sub := Label.new()
-	sub.text = "V2.3 HD  •  MOBILE GUITAR RHYTHM"
+	sub.text = I18n.t("subtitle")
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if ThemeManager.font_display:
 		sub.add_theme_font_override("font", ThemeManager.font_display)
-	sub.add_theme_font_size_override("font_size", 24)
+	sub.add_theme_font_size_override("font_size", 23)
 	sub.add_theme_color_override("font_color", t["accent_2"])
 	hero_vb.add_child(sub)
 
@@ -296,11 +357,11 @@ func _build_home_screen(parent: MarginContainer, t: Dictionary) -> void:
 	root_vb.add_child(stats_pill)
 
 	var stats_lbl := Label.new()
-	stats_lbl.text = "🎵 %d SONGS INSTALLED   •   ★ %d STARS" % [GameState.library.size(), GameState.get_total_stars()]
+	stats_lbl.text = I18n.t("stats_pill") % [GameState.library.size(), GameState.get_total_stars()]
 	stats_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if ThemeManager.font_body:
 		stats_lbl.add_theme_font_override("font", ThemeManager.font_body)
-	stats_lbl.add_theme_font_size_override("font_size", 26)
+	stats_lbl.add_theme_font_size_override("font_size", 25)
 	stats_lbl.add_theme_color_override("font_color", t["text"])
 	stats_pill.add_child(stats_lbl)
 
@@ -310,7 +371,7 @@ func _build_home_screen(parent: MarginContainer, t: Dictionary) -> void:
 	root_vb.add_child(now_card)
 
 	var now_vb := VBoxContainer.new()
-	now_vb.add_theme_constant_override("separation", 18)
+	now_vb.add_theme_constant_override("separation", 16)
 	now_card.add_child(now_vb)
 
 	var now_hb := HBoxContainer.new()
@@ -321,7 +382,7 @@ func _build_home_screen(parent: MarginContainer, t: Dictionary) -> void:
 	var home_vinyl := VinylDisc.new()
 	home_vinyl.accent = t["accent"]
 	home_vinyl.accent2 = t["accent_2"]
-	home_vinyl.custom_minimum_size = Vector2(150, 150)
+	home_vinyl.custom_minimum_size = Vector2(140, 140)
 	now_hb.add_child(home_vinyl)
 
 	var info_vb := VBoxContainer.new()
@@ -331,7 +392,7 @@ func _build_home_screen(parent: MarginContainer, t: Dictionary) -> void:
 	now_hb.add_child(info_vb)
 
 	var tag_lbl := Label.new()
-	tag_lbl.text = "READY TO PLAY"
+	tag_lbl.text = I18n.t("ready_to_play")
 	if ThemeManager.font_semi:
 		tag_lbl.add_theme_font_override("font", ThemeManager.font_semi)
 	tag_lbl.add_theme_font_size_override("font_size", 22)
@@ -344,7 +405,7 @@ func _build_home_screen(parent: MarginContainer, t: Dictionary) -> void:
 	s_name.max_lines_visible = 2
 	if ThemeManager.font_display:
 		s_name.add_theme_font_override("font", ThemeManager.font_display)
-	s_name.add_theme_font_size_override("font_size", 28)
+	s_name.add_theme_font_size_override("font_size", 27)
 	s_name.add_theme_color_override("font_color", t["text"])
 	info_vb.add_child(s_name)
 
@@ -352,15 +413,15 @@ func _build_home_screen(parent: MarginContainer, t: Dictionary) -> void:
 	s_art.text = str(GameState.current_song.get("artist", "DroidHero Studio")) + " • " + GameState.current_difficulty.to_upper()
 	if ThemeManager.font_body:
 		s_art.add_theme_font_override("font", ThemeManager.font_body)
-	s_art.add_theme_font_size_override("font_size", 24)
+	s_art.add_theme_font_size_override("font_size", 23)
 	s_art.add_theme_color_override("font_color", t["text_dim"])
 	info_vb.add_child(s_art)
 
 	var btn_quick := Button.new()
-	btn_quick.text = "⚡  QUICK PLAY NOW  ▶"
-	btn_quick.custom_minimum_size = Vector2(0, 88)
+	btn_quick.text = I18n.t("quick_play")
+	btn_quick.custom_minimum_size = Vector2(0, 84)
 	ThemeManager.style_button(btn_quick, true, t["accent_2"])
-	btn_quick.add_theme_font_size_override("font_size", 30)
+	btn_quick.add_theme_font_size_override("font_size", 28)
 	btn_quick.pressed.connect(func():
 		GameState.play_click()
 		_show_screen(Screen.DIFFICULTY)
@@ -373,28 +434,28 @@ func _build_home_screen(parent: MarginContainer, t: Dictionary) -> void:
 	root_vb.add_child(mid_sp)
 
 	# 5. Four Huge Full-Width Smartphone Game Buttons
-	var btn_play := _make_mobile_menu_btn("▶   PLAY SONGS", "Local song library & practice mode", true, t["accent"], 132)
+	var btn_play := _make_mobile_menu_btn(I18n.t("menu_play"), I18n.t("menu_play_sub"), true, t["accent"], 124)
 	btn_play.pressed.connect(func():
 		GameState.play_click()
 		_show_screen(Screen.SONGS)
 	)
 	root_vb.add_child(btn_play)
 
-	var btn_store := _make_mobile_menu_btn("☁   DOWNLOAD SONGS", "Browse 85,000+ free charts on enchor.us", false, t["accent_2"], 118)
+	var btn_store := _make_mobile_menu_btn(I18n.t("menu_store"), I18n.t("menu_store_sub"), false, t["accent_2"], 114)
 	btn_store.pressed.connect(func():
 		GameState.play_click()
 		_show_screen(Screen.ENCHOR)
 	)
 	root_vb.add_child(btn_store)
 
-	var btn_cust := _make_mobile_menu_btn("🎨   THEMES & HD GUITAR", "5 arena themes & 3 HD fretboard decks", false, t["accent_3"], 118)
+	var btn_cust := _make_mobile_menu_btn(I18n.t("menu_customize"), I18n.t("menu_customize_sub"), false, t["accent_3"], 114)
 	btn_cust.pressed.connect(func():
 		GameState.play_click()
 		_show_screen(Screen.CUSTOMIZE)
 	)
 	root_vb.add_child(btn_cust)
 
-	var btn_set := _make_mobile_menu_btn("⚙   SETTINGS", "Note speed, hit window & calibration", false, t["border"], 118)
+	var btn_set := _make_mobile_menu_btn(I18n.t("menu_settings"), I18n.t("menu_settings_sub"), false, t["border"], 114)
 	btn_set.pressed.connect(func():
 		GameState.play_click()
 		_show_screen(Screen.SETTINGS)
@@ -426,7 +487,7 @@ func _make_mobile_menu_btn(title_txt: String, sub_txt: String, primary: bool, co
 	tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if ThemeManager.font_display:
 		tl.add_theme_font_override("font", ThemeManager.font_display)
-	tl.add_theme_font_size_override("font_size", 36 if primary else 30)
+	tl.add_theme_font_size_override("font_size", 35 if primary else 29)
 	tl.add_theme_color_override("font_color", Color.WHITE if primary else t["text"])
 	vb.add_child(tl)
 
@@ -435,47 +496,48 @@ func _make_mobile_menu_btn(title_txt: String, sub_txt: String, primary: bool, co
 	sl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if ThemeManager.font_body:
 		sl.add_theme_font_override("font", ThemeManager.font_body)
-	sl.add_theme_font_size_override("font_size", 23)
+	sl.add_theme_font_size_override("font_size", 22)
 	sl.add_theme_color_override("font_color", t["text_dim"])
 	vb.add_child(sl)
 	return btn
 
 # ============================================================================
-# SCREEN 1: PORTRAIT SONG SELECT
+# SCREEN 1: PORTRAIT SONG SELECT (page_size = 10 + Smooth Touch Scroll)
 # ============================================================================
 func _build_songs_screen(parent: MarginContainer, t: Dictionary) -> void:
 	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 18)
+	vbox.add_theme_constant_override("separation", 14)
 	parent.add_child(vbox)
 
-	_make_top_bar(vbox, "SELECT SONG", Screen.HOME, t)
+	_make_top_bar(vbox, I18n.t("select_song"), Screen.HOME, t)
 
-	# Action Pill Row (Sort + Import + Preview)
+	# Action Pill Row (Sort + Preview + Import)
 	var tools_hb := HBoxContainer.new()
 	tools_hb.add_theme_constant_override("separation", 12)
 	vbox.add_child(tools_hb)
 
-	var sort_names := ["SORT: TITLE", "SORT: ARTIST", "SORT: ★"]
+	var sort_names := [I18n.t("sort_title"), I18n.t("sort_artist"), I18n.t("sort_stars")]
 	var btn_sort := Button.new()
 	btn_sort.text = sort_names[_sort_mode]
 	btn_sort.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn_sort.custom_minimum_size = Vector2(0, 72)
+	btn_sort.custom_minimum_size = Vector2(0, 70)
 	ThemeManager.style_button(btn_sort, false)
-	btn_sort.add_theme_font_size_override("font_size", 24)
+	btn_sort.add_theme_font_size_override("font_size", 23)
 	btn_sort.pressed.connect(func():
 		GameState.play_click()
 		_sort_mode = (_sort_mode + 1) % 3
+		_local_page = 1
 		btn_sort.text = sort_names[_sort_mode]
 		_populate_song_cards()
 	)
 	tools_hb.add_child(btn_sort)
 
 	_btn_preview = Button.new()
-	_btn_preview.text = "🔊 PREVIEW"
+	_btn_preview.text = I18n.t("preview")
 	_btn_preview.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_btn_preview.custom_minimum_size = Vector2(0, 72)
+	_btn_preview.custom_minimum_size = Vector2(0, 70)
 	ThemeManager.style_button(_btn_preview, false)
-	_btn_preview.add_theme_font_size_override("font_size", 24)
+	_btn_preview.add_theme_font_size_override("font_size", 23)
 	_btn_preview.pressed.connect(func():
 		GameState.play_click()
 		_toggle_song_preview()
@@ -483,31 +545,74 @@ func _build_songs_screen(parent: MarginContainer, t: Dictionary) -> void:
 	tools_hb.add_child(_btn_preview)
 
 	var btn_imp := Button.new()
-	btn_imp.text = "+ IMPORT"
-	btn_imp.custom_minimum_size = Vector2(180, 72)
+	btn_imp.text = I18n.t("import_btn")
+	btn_imp.custom_minimum_size = Vector2(175, 70)
 	ThemeManager.style_button(btn_imp, false, t["accent_2"])
-	btn_imp.add_theme_font_size_override("font_size", 24)
+	btn_imp.add_theme_font_size_override("font_size", 23)
 	btn_imp.pressed.connect(func():
 		GameState.play_click()
 		_file_dialog.popup_centered_ratio(0.92)
 	)
 	tools_hb.add_child(btn_imp)
 
-	# Scrollable Vertical Song List
+	# Scrollable Vertical Song List (touch-friendly)
 	var list_panel := PanelContainer.new()
 	list_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	list_panel.add_theme_stylebox_override("panel", ThemeManager.make_card_style(t["panel"], t["border"], 22, 2, 8))
 	vbox.add_child(list_panel)
 
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	list_panel.add_child(scroll)
+	_lib_scroll = _make_touch_scroll()
+	list_panel.add_child(_lib_scroll)
 
 	_lib_list_vbox = VBoxContainer.new()
 	_lib_list_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_lib_list_vbox.mouse_filter = Control.MOUSE_FILTER_PASS
 	_lib_list_vbox.add_theme_constant_override("separation", 14)
-	scroll.add_child(_lib_list_vbox)
+	_lib_scroll.add_child(_lib_list_vbox)
+
+	# Local Library Pagination Row (page_size = 10)
+	var page_hb := HBoxContainer.new()
+	page_hb.add_theme_constant_override("separation", 12)
+	page_hb.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.add_child(page_hb)
+
+	_lib_btn_prev = Button.new()
+	_lib_btn_prev.text = I18n.t("prev_btn")
+	_lib_btn_prev.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_lib_btn_prev.custom_minimum_size = Vector2(0, 64)
+	ThemeManager.style_button(_lib_btn_prev, false)
+	_lib_btn_prev.add_theme_font_size_override("font_size", 22)
+	_lib_btn_prev.pressed.connect(func():
+		if _local_page > 1:
+			GameState.play_click()
+			_local_page -= 1
+			_populate_song_cards()
+	)
+	page_hb.add_child(_lib_btn_prev)
+
+	_lib_page_lbl = Label.new()
+	_lib_page_lbl.text = I18n.t("page_indicator") % [1, 1]
+	_lib_page_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_lib_page_lbl.custom_minimum_size = Vector2(150, 0)
+	if ThemeManager.font_display:
+		_lib_page_lbl.add_theme_font_override("font", ThemeManager.font_display)
+	_lib_page_lbl.add_theme_font_size_override("font_size", 22)
+	_lib_page_lbl.add_theme_color_override("font_color", t["accent"])
+	page_hb.add_child(_lib_page_lbl)
+
+	_lib_btn_next = Button.new()
+	_lib_btn_next.text = I18n.t("next_btn")
+	_lib_btn_next.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_lib_btn_next.custom_minimum_size = Vector2(0, 64)
+	ThemeManager.style_button(_lib_btn_next, false)
+	_lib_btn_next.add_theme_font_size_override("font_size", 22)
+	_lib_btn_next.pressed.connect(func():
+		if _local_page < _local_total_pages:
+			GameState.play_click()
+			_local_page += 1
+			_populate_song_cards()
+	)
+	page_hb.add_child(_lib_btn_next)
 
 	# Sticky Bottom Selected Song & Next Step Card
 	var bot_card := PanelContainer.new()
@@ -515,7 +620,7 @@ func _build_songs_screen(parent: MarginContainer, t: Dictionary) -> void:
 	vbox.add_child(bot_card)
 
 	var bot_vb := VBoxContainer.new()
-	bot_vb.add_theme_constant_override("separation", 14)
+	bot_vb.add_theme_constant_override("separation", 12)
 	bot_card.add_child(bot_vb)
 
 	var sel_hb := HBoxContainer.new()
@@ -526,7 +631,7 @@ func _build_songs_screen(parent: MarginContainer, t: Dictionary) -> void:
 	_vinyl = VinylDisc.new()
 	_vinyl.accent = t["accent"]
 	_vinyl.accent2 = t["accent_2"]
-	_vinyl.custom_minimum_size = Vector2(92, 92)
+	_vinyl.custom_minimum_size = Vector2(86, 86)
 	sel_hb.add_child(_vinyl)
 
 	_sel_banner_lbl = Label.new()
@@ -534,15 +639,15 @@ func _build_songs_screen(parent: MarginContainer, t: Dictionary) -> void:
 	_sel_banner_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	if ThemeManager.font_body:
 		_sel_banner_lbl.add_theme_font_override("font", ThemeManager.font_body)
-	_sel_banner_lbl.add_theme_font_size_override("font_size", 25)
+	_sel_banner_lbl.add_theme_font_size_override("font_size", 24)
 	_sel_banner_lbl.add_theme_color_override("font_color", t["text"])
 	sel_hb.add_child(_sel_banner_lbl)
 
 	var btn_next := Button.new()
-	btn_next.text = "SELECT DIFFICULTY  ▶"
-	btn_next.custom_minimum_size = Vector2(0, 92)
+	btn_next.text = I18n.t("select_diff_btn")
+	btn_next.custom_minimum_size = Vector2(0, 88)
 	ThemeManager.style_button(btn_next, true, t["accent"])
-	btn_next.add_theme_font_size_override("font_size", 32)
+	btn_next.add_theme_font_size_override("font_size", 30)
 	btn_next.pressed.connect(func():
 		GameState.play_click()
 		_show_screen(Screen.DIFFICULTY)
@@ -578,7 +683,22 @@ func _populate_song_cards() -> void:
 		return str(a.get("name", "")).nocasecmp_to(str(b.get("name", ""))) < 0
 	)
 
-	for song in songs:
+	_local_total_pages = maxi(1, int(ceil(float(songs.size()) / float(PAGE_SIZE))))
+	_local_page = clampi(_local_page, 1, _local_total_pages)
+	var start_idx := (_local_page - 1) * PAGE_SIZE
+	var end_idx := mini(start_idx + PAGE_SIZE, songs.size())
+
+	if _lib_page_lbl:
+		_lib_page_lbl.text = I18n.t("page_indicator") % [_local_page, _local_total_pages]
+	if _lib_btn_prev:
+		_lib_btn_prev.disabled = (_local_page <= 1)
+	if _lib_btn_next:
+		_lib_btn_next.disabled = (_local_page >= _local_total_pages)
+	if _lib_scroll:
+		_lib_scroll.scroll_vertical = 0
+
+	for idx in range(start_idx, end_idx):
+		var song: Dictionary = songs[idx]
 		var is_sel := str(song.get("id", "")) == str(GameState.current_song.get("id", ""))
 		var card_btn := Button.new()
 		card_btn.custom_minimum_size = Vector2(0, 122)
@@ -626,7 +746,7 @@ func _populate_song_cards() -> void:
 
 		var best_st := _get_best_stars_any_diff(str(song.get("id", "")))
 		var st_lbl := Label.new()
-		st_lbl.text = ("★".repeat(best_st) + "☆".repeat(5 - best_st)) if best_st > 0 else "NEW"
+		st_lbl.text = ("★".repeat(best_st) + "☆".repeat(5 - best_st)) if best_st > 0 else I18n.t("new_badge")
 		st_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if ThemeManager.font_body:
 			st_lbl.add_theme_font_override("font", ThemeManager.font_body)
@@ -644,6 +764,7 @@ func _populate_song_cards() -> void:
 			GameState.current_song = s_copy
 			_populate_song_cards()
 		)
+		_make_scroll_pass(card_btn)
 		_lib_list_vbox.add_child(card_btn)
 
 	if _sel_banner_lbl:
@@ -658,7 +779,14 @@ func _build_difficulty_screen(parent: MarginContainer, t: Dictionary) -> void:
 	vbox.add_theme_constant_override("separation", 22)
 	parent.add_child(vbox)
 
-	_make_top_bar(vbox, "DIFFICULTY", Screen.SONGS, t)
+	_make_top_bar(vbox, I18n.t("difficulty_title"), Screen.SONGS, t)
+
+	# Determine real available difficulties charted for this song (matching enchor.us / chart)
+	var avail_diffs: Array[String] = SngParser.get_available_difficulties(GameState.current_song)
+	if avail_diffs.is_empty():
+		avail_diffs = ["Expert"]
+	if not avail_diffs.has(GameState.current_difficulty):
+		GameState.current_difficulty = avail_diffs[avail_diffs.size() - 1]
 
 	# Selected Song Header Card
 	var scard := PanelContainer.new()
@@ -684,21 +812,25 @@ func _build_difficulty_screen(parent: MarginContainer, t: Dictionary) -> void:
 	vbox.add_child(grid)
 
 	var diff_defs := [
-		{"id": "Easy", "title": "EASY", "desc": "Casual • 3-4 Lanes", "col": Color(0.12, 0.96, 0.48)},
-		{"id": "Medium", "title": "MEDIUM", "desc": "Standard • 4 Lanes", "col": Color(1.0, 0.84, 0.16)},
-		{"id": "Hard", "title": "HARD", "desc": "Fast • 5 Lanes", "col": Color(1.0, 0.52, 0.12)},
-		{"id": "Expert", "title": "EXPERT", "desc": "Pro • Full Chart", "col": Color(1.0, 0.20, 0.34)}
+		{"id": "Easy", "title": "EASY", "desc": I18n.t("diff_easy_desc"), "col": Color(0.12, 0.96, 0.48)},
+		{"id": "Medium", "title": "MEDIUM", "desc": I18n.t("diff_med_desc"), "col": Color(1.0, 0.84, 0.16)},
+		{"id": "Hard", "title": "HARD", "desc": I18n.t("diff_hard_desc"), "col": Color(1.0, 0.52, 0.12)},
+		{"id": "Expert", "title": "EXPERT", "desc": I18n.t("diff_exp_desc"), "col": Color(1.0, 0.20, 0.34)}
 	]
 
 	for dd in diff_defs:
 		var d_id: String = dd["id"]
-		var is_sel := (GameState.current_difficulty == d_id)
+		var is_avail := avail_diffs.has(d_id)
+		var is_sel := is_avail and (GameState.current_difficulty == d_id)
 		var dcol: Color = dd["col"]
 
 		var dbtn := Button.new()
 		dbtn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		dbtn.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		ThemeManager.style_button(dbtn, is_sel, dcol)
+		dbtn.disabled = not is_avail
+		ThemeManager.style_button(dbtn, is_sel, dcol if is_avail else Color(0.4, 0.4, 0.45))
+		if not is_avail:
+			dbtn.modulate = Color(0.48, 0.48, 0.54, 0.62)
 
 		var cv := VBoxContainer.new()
 		cv.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -713,11 +845,11 @@ func _build_difficulty_screen(parent: MarginContainer, t: Dictionary) -> void:
 		if ThemeManager.font_display:
 			dlbl.add_theme_font_override("font", ThemeManager.font_display)
 		dlbl.add_theme_font_size_override("font_size", 40)
-		dlbl.add_theme_color_override("font_color", Color.WHITE if is_sel else dcol)
+		dlbl.add_theme_color_override("font_color", Color.WHITE if is_sel else (dcol if is_avail else t["text_dim"]))
 		cv.add_child(dlbl)
 
 		var dsub := Label.new()
-		dsub.text = dd["desc"]
+		dsub.text = dd["desc"] if is_avail else I18n.t("not_available")
 		dsub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		if ThemeManager.font_body:
 			dsub.add_theme_font_override("font", ThemeManager.font_body)
@@ -728,14 +860,14 @@ func _build_difficulty_screen(parent: MarginContainer, t: Dictionary) -> void:
 		var rec := GameState.get_best(str(GameState.current_song.get("id", "")), d_id)
 		var st_cnt := int(rec.get("stars", 0))
 		var st_lbl := Label.new()
-		st_lbl.text = ("★".repeat(st_cnt) + "☆".repeat(5 - st_cnt)) if st_cnt > 0 else "☆☆☆☆☆"
+		st_lbl.text = (("★".repeat(st_cnt) + "☆".repeat(5 - st_cnt)) if st_cnt > 0 else "☆☆☆☆☆") if is_avail else "—"
 		st_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		st_lbl.add_theme_font_size_override("font_size", 34)
-		st_lbl.add_theme_color_override("font_color", Color(1.0, 0.86, 0.22) if st_cnt > 0 else Color(1, 1, 1, 0.22))
+		st_lbl.add_theme_color_override("font_color", Color(1.0, 0.86, 0.22) if (is_avail and st_cnt > 0) else Color(1, 1, 1, 0.22))
 		cv.add_child(st_lbl)
 
 		var best_txt := Label.new()
-		best_txt.text = ("%d PTS" % int(rec.get("score", 0))) if not rec.is_empty() else "Not played yet"
+		best_txt.text = (("%d PTS" % int(rec.get("score", 0))) if not rec.is_empty() else I18n.t("not_played")) if is_avail else ""
 		best_txt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		if ThemeManager.font_body:
 			best_txt.add_theme_font_override("font", ThemeManager.font_body)
@@ -743,54 +875,32 @@ func _build_difficulty_screen(parent: MarginContainer, t: Dictionary) -> void:
 		best_txt.add_theme_color_override("font_color", t["text"])
 		cv.add_child(best_txt)
 
-		dbtn.pressed.connect(func():
-			GameState.play_click()
-			GameState.current_difficulty = d_id
-			_show_screen(Screen.DIFFICULTY, false)
-		)
+		if is_avail:
+			dbtn.pressed.connect(func():
+				GameState.play_click()
+				GameState.current_difficulty = d_id
+				_show_screen(Screen.DIFFICULTY, false)
+			)
 		grid.add_child(dbtn)
 
-	# Speed & No-Fail Row
-	var opt_hb := HBoxContainer.new()
-	opt_hb.add_theme_constant_override("separation", 14)
-	vbox.add_child(opt_hb)
-
-	var speeds := [1.0, 0.75, 0.50, 1.25]
-	var speed_labels := ["SPEED: 100%", "PRACTICE: 75%", "LEARN: 50%", "HYPER: 125%"]
-	var cur_spd_idx := speeds.find(GameState.practice_speed)
-	if cur_spd_idx < 0:
-		cur_spd_idx = 0
-
-	var btn_spd := Button.new()
-	btn_spd.text = speed_labels[cur_spd_idx]
-	btn_spd.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn_spd.custom_minimum_size = Vector2(0, 82)
-	ThemeManager.style_button(btn_spd, false)
-	btn_spd.pressed.connect(func():
-		GameState.play_click()
-		var nxt := (speeds.find(GameState.practice_speed) + 1) % speeds.size()
-		GameState.practice_speed = speeds[nxt]
-		btn_spd.text = speed_labels[nxt]
-	)
-	opt_hb.add_child(btn_spd)
-
+	# Full-Width No-Fail Toggle (music speed feature removed)
 	var nf_on := bool(GameState.settings.get("no_fail", false))
 	var btn_nf := Button.new()
-	btn_nf.text = "NO-FAIL: ON ✓" if nf_on else "NO-FAIL: OFF"
-	btn_nf.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn_nf.text = I18n.t("nofail_on") if nf_on else I18n.t("nofail_off")
 	btn_nf.custom_minimum_size = Vector2(0, 82)
 	ThemeManager.style_button(btn_nf, nf_on, Color(0.15, 0.95, 0.55))
+	btn_nf.add_theme_font_size_override("font_size", 26)
 	btn_nf.pressed.connect(func():
 		GameState.play_click()
 		GameState.settings["no_fail"] = not nf_on
 		GameState.save_data()
 		_show_screen(Screen.DIFFICULTY, false)
 	)
-	opt_hb.add_child(btn_nf)
+	vbox.add_child(btn_nf)
 
 	# Giant Bottom Launch Button
 	var btn_go := Button.new()
-	btn_go.text = "★   ROCK ON STAGE!   ★"
+	btn_go.text = I18n.t("start_concert")
 	btn_go.custom_minimum_size = Vector2(0, 114)
 	ThemeManager.style_button(btn_go, true, t["accent"])
 	btn_go.add_theme_font_size_override("font_size", 36)
@@ -803,23 +913,24 @@ func _build_difficulty_screen(parent: MarginContainer, t: Dictionary) -> void:
 	vbox.add_child(btn_go)
 
 # ============================================================================
-# SCREEN 3: PORTRAIT ENCHOR.US MOBILE STORE
+# SCREEN 3: PORTRAIT ENCHOR.US MOBILE STORE (page_size = 10 + Diff Filter + Touch Scroll)
 # ============================================================================
 func _build_enchor_screen(parent: MarginContainer, t: Dictionary) -> void:
 	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 16)
+	vbox.add_theme_constant_override("separation", 12)
 	parent.add_child(vbox)
 
-	_make_top_bar(vbox, "ENCHOR.US STORE", Screen.HOME, t)
+	_make_top_bar(vbox, I18n.t("store_title"), Screen.HOME, t)
 
 	# Full-width Search Box + Buttons
 	_search_input = LineEdit.new()
-	_search_input.placeholder_text = "Search song title, artist, or charter..."
-	_search_input.custom_minimum_size = Vector2(0, 78)
+	_search_input.placeholder_text = I18n.t("search_hint")
+	_search_input.text = "" if _enchor_last_query == "*" else _enchor_last_query
+	_search_input.custom_minimum_size = Vector2(0, 74)
 	_search_input.add_theme_stylebox_override("normal", ThemeManager.make_card_style(Color(0.03, 0.03, 0.08, 0.96), t["border"], 18, 2, 0))
 	if ThemeManager.font_body:
 		_search_input.add_theme_font_override("font", ThemeManager.font_body)
-	_search_input.add_theme_font_size_override("font_size", 28)
+	_search_input.add_theme_font_size_override("font_size", 26)
 	_search_input.text_submitted.connect(func(q: String): _trigger_enchor_search(q, 1))
 	vbox.add_child(_search_input)
 
@@ -828,10 +939,11 @@ func _build_enchor_screen(parent: MarginContainer, t: Dictionary) -> void:
 	vbox.add_child(s_hb)
 
 	var btn_search := Button.new()
-	btn_search.text = "🔍  SEARCH ENCHOR.US"
+	btn_search.text = I18n.t("search_btn")
 	btn_search.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn_search.custom_minimum_size = Vector2(0, 74)
+	btn_search.custom_minimum_size = Vector2(0, 68)
 	ThemeManager.style_button(btn_search, true)
+	btn_search.add_theme_font_size_override("font_size", 24)
 	btn_search.pressed.connect(func():
 		GameState.play_click()
 		_trigger_enchor_search(_search_input.text, 1)
@@ -839,9 +951,10 @@ func _build_enchor_screen(parent: MarginContainer, t: Dictionary) -> void:
 	s_hb.add_child(btn_search)
 
 	var btn_top := Button.new()
-	btn_top.text = "TOP / LATEST"
-	btn_top.custom_minimum_size = Vector2(185, 74)
+	btn_top.text = I18n.t("popular_btn")
+	btn_top.custom_minimum_size = Vector2(180, 68)
 	ThemeManager.style_button(btn_top, false)
+	btn_top.add_theme_font_size_override("font_size", 23)
 	btn_top.pressed.connect(func():
 		GameState.play_click()
 		_search_input.text = ""
@@ -849,11 +962,40 @@ func _build_enchor_screen(parent: MarginContainer, t: Dictionary) -> void:
 	)
 	s_hb.add_child(btn_top)
 
+	# Difficulty Filter Pill Row matching enchor.us API
+	var df_hb := HBoxContainer.new()
+	df_hb.add_theme_constant_override("separation", 8)
+	vbox.add_child(df_hb)
+
+	var filter_opts := [
+		{"key": "", "lbl": I18n.t("filter_all"), "col": t["accent"]},
+		{"key": "easy", "lbl": "EASY", "col": Color(0.12, 0.96, 0.48)},
+		{"key": "medium", "lbl": "MED", "col": Color(1.0, 0.84, 0.16)},
+		{"key": "hard", "lbl": "HARD", "col": Color(1.0, 0.52, 0.12)},
+		{"key": "expert", "lbl": "EXP", "col": Color(1.0, 0.20, 0.34)}
+	]
+	for fo in filter_opts:
+		var fkey: String = fo["key"]
+		var is_act := (_enchor_diff_filter == fkey)
+		var fb := Button.new()
+		fb.text = fo["lbl"]
+		fb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		fb.custom_minimum_size = Vector2(0, 56)
+		ThemeManager.style_button(fb, is_act, fo["col"])
+		fb.add_theme_font_size_override("font_size", 20)
+		fb.pressed.connect(func():
+			GameState.play_click()
+			_enchor_diff_filter = fkey
+			_enchor_page = 1
+			_show_screen(Screen.ENCHOR, false)
+		)
+		df_hb.add_child(fb)
+
 	_enchor_status = Label.new()
-	_enchor_status.text = "Loading charts from enchor.us..."
+	_enchor_status.text = I18n.t("loading_charts")
 	if ThemeManager.font_body:
 		_enchor_status.add_theme_font_override("font", ThemeManager.font_body)
-	_enchor_status.add_theme_font_size_override("font_size", 24)
+	_enchor_status.add_theme_font_size_override("font_size", 22)
 	_enchor_status.add_theme_color_override("font_color", t["text_dim"])
 	vbox.add_child(_enchor_status)
 
@@ -862,40 +1004,56 @@ func _build_enchor_screen(parent: MarginContainer, t: Dictionary) -> void:
 	list_card.add_theme_stylebox_override("panel", ThemeManager.make_card_style(t["panel"], t["border"], 22, 2, 8))
 	vbox.add_child(list_card)
 
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	list_card.add_child(scroll)
+	_enchor_scroll = _make_touch_scroll()
+	list_card.add_child(_enchor_scroll)
 
 	_enchor_list_vbox = VBoxContainer.new()
 	_enchor_list_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_enchor_list_vbox.mouse_filter = Control.MOUSE_FILTER_PASS
 	_enchor_list_vbox.add_theme_constant_override("separation", 14)
-	scroll.add_child(_enchor_list_vbox)
+	_enchor_scroll.add_child(_enchor_list_vbox)
 
+	# Pagination Row (page_size = 10)
 	var prow := HBoxContainer.new()
-	prow.add_theme_constant_override("separation", 14)
+	prow.add_theme_constant_override("separation", 12)
+	prow.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.add_child(prow)
 
-	var btn_prev := Button.new()
-	btn_prev.text = "◀  PREVIOUS"
-	btn_prev.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn_prev.custom_minimum_size = Vector2(0, 74)
-	ThemeManager.style_button(btn_prev, false)
-	btn_prev.pressed.connect(func():
+	_enchor_btn_prev = Button.new()
+	_enchor_btn_prev.text = I18n.t("prev_btn")
+	_enchor_btn_prev.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_enchor_btn_prev.custom_minimum_size = Vector2(0, 68)
+	ThemeManager.style_button(_enchor_btn_prev, false)
+	_enchor_btn_prev.add_theme_font_size_override("font_size", 22)
+	_enchor_btn_prev.pressed.connect(func():
 		if _enchor_page > 1:
+			GameState.play_click()
 			_trigger_enchor_search(_enchor_last_query, _enchor_page - 1)
 	)
-	prow.add_child(btn_prev)
+	prow.add_child(_enchor_btn_prev)
 
-	var btn_next := Button.new()
-	btn_next.text = "NEXT  ▶"
-	btn_next.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn_next.custom_minimum_size = Vector2(0, 74)
-	ThemeManager.style_button(btn_next, false)
-	btn_next.pressed.connect(func():
-		_trigger_enchor_search(_enchor_last_query, _enchor_page + 1)
+	_enchor_page_lbl = Label.new()
+	_enchor_page_lbl.text = I18n.t("page_indicator") % [_enchor_page, _enchor_total_pages]
+	_enchor_page_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_enchor_page_lbl.custom_minimum_size = Vector2(150, 0)
+	if ThemeManager.font_display:
+		_enchor_page_lbl.add_theme_font_override("font", ThemeManager.font_display)
+	_enchor_page_lbl.add_theme_font_size_override("font_size", 22)
+	_enchor_page_lbl.add_theme_color_override("font_color", t["accent"])
+	prow.add_child(_enchor_page_lbl)
+
+	_enchor_btn_next = Button.new()
+	_enchor_btn_next.text = I18n.t("next_btn")
+	_enchor_btn_next.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_enchor_btn_next.custom_minimum_size = Vector2(0, 68)
+	ThemeManager.style_button(_enchor_btn_next, false)
+	_enchor_btn_next.add_theme_font_size_override("font_size", 22)
+	_enchor_btn_next.pressed.connect(func():
+		if _enchor_page < _enchor_total_pages:
+			GameState.play_click()
+			_trigger_enchor_search(_enchor_last_query, _enchor_page + 1)
 	)
-	prow.add_child(btn_next)
+	prow.add_child(_enchor_btn_next)
 
 	_trigger_enchor_search(_enchor_last_query, _enchor_page)
 
@@ -903,8 +1061,11 @@ func _trigger_enchor_search(query: String, page: int) -> void:
 	_enchor_last_query = query if query.strip_edges() != "" else "*"
 	_enchor_page = maxi(1, page)
 	if _enchor_status:
-		_enchor_status.text = "Searching... (Page " + str(_enchor_page) + ")"
-	EnchorClient.search_charts(_enchor_last_query, _enchor_page)
+		_enchor_status.text = I18n.t("searching_page") % _enchor_page
+	if _enchor_scroll:
+		_enchor_scroll.scroll_vertical = 0
+	var diff_arg = null if _enchor_diff_filter == "" else _enchor_diff_filter
+	EnchorClient.search_charts(_enchor_last_query, _enchor_page, diff_arg, PAGE_SIZE)
 
 func _on_enchor_results(results: Array, total_found: int, page: int, error_msg: String) -> void:
 	if _current_screen != Screen.ENCHOR or not _enchor_list_vbox or not is_instance_valid(_enchor_list_vbox):
@@ -917,8 +1078,24 @@ func _on_enchor_results(results: Array, total_found: int, page: int, error_msg: 
 		_enchor_status.text = "⚠ " + error_msg
 		return
 
-	_enchor_status.text = "%d charts found  •  Page %d" % [total_found, page]
+	_enchor_total_pages = maxi(1, int(ceil(float(total_found) / float(PAGE_SIZE))))
+	_enchor_status.text = I18n.t("charts_found") % [total_found, page, _enchor_total_pages]
+	if _enchor_page_lbl:
+		_enchor_page_lbl.text = I18n.t("page_indicator") % [page, _enchor_total_pages]
+	if _enchor_btn_prev:
+		_enchor_btn_prev.disabled = (page <= 1)
+	if _enchor_btn_next:
+		_enchor_btn_next.disabled = (page >= _enchor_total_pages)
+	if _enchor_scroll:
+		_enchor_scroll.scroll_vertical = 0
+
 	var t := ThemeManager.get_theme_data()
+	var diff_badge_defs := [
+		{"id": "Easy", "short": "E", "col": Color(0.12, 0.96, 0.48)},
+		{"id": "Medium", "short": "M", "col": Color(1.0, 0.84, 0.16)},
+		{"id": "Hard", "short": "H", "col": Color(1.0, 0.52, 0.12)},
+		{"id": "Expert", "short": "X", "col": Color(1.0, 0.20, 0.34)}
+	]
 
 	for item in results:
 		var md5 := str(item.get("md5", ""))
@@ -952,6 +1129,7 @@ func _on_enchor_results(results: Array, total_found: int, page: int, error_msg: 
 		var vb := VBoxContainer.new()
 		vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		vb.alignment = BoxContainer.ALIGNMENT_CENTER
+		vb.add_theme_constant_override("separation", 4)
 		top_hb.add_child(vb)
 
 		var title := Label.new()
@@ -966,7 +1144,7 @@ func _on_enchor_results(results: Array, total_found: int, page: int, error_msg: 
 
 		var dur_s := int(item.get("song_length", 180000)) / 1000
 		var meta_lbl := Label.new()
-		meta_lbl.text = "%s • %d:%02d • Charter: %s" % [
+		meta_lbl.text = "%s • %d:%02d • %s" % [
 			str(item.get("artist", "Artist")),
 			dur_s / 60,
 			dur_s % 60,
@@ -975,14 +1153,29 @@ func _on_enchor_results(results: Array, total_found: int, page: int, error_msg: 
 		meta_lbl.clip_text = true
 		if ThemeManager.font_body:
 			meta_lbl.add_theme_font_override("font", ThemeManager.font_body)
-		meta_lbl.add_theme_font_size_override("font_size", 22)
+		meta_lbl.add_theme_font_size_override("font_size", 21)
 		meta_lbl.add_theme_color_override("font_color", t["text_dim"])
 		vb.add_child(meta_lbl)
+
+		# Available Difficulties Badges (E M H X) from enchor.us notesData
+		var avail_raw = item.get("available_diffs", ["Expert"])
+		var badge_hb := HBoxContainer.new()
+		badge_hb.add_theme_constant_override("separation", 8)
+		vb.add_child(badge_hb)
+		for bd in diff_badge_defs:
+			var has_d: bool = (avail_raw is Array and avail_raw.has(bd["id"]))
+			var bl := Label.new()
+			bl.text = " " + str(bd["short"]) + " "
+			if ThemeManager.font_display:
+				bl.add_theme_font_override("font", ThemeManager.font_display)
+			bl.add_theme_font_size_override("font_size", 18)
+			bl.add_theme_color_override("font_color", bd["col"] if has_d else Color(1, 1, 1, 0.16))
+			badge_hb.add_child(bl)
 
 		var item_copy: Dictionary = item
 		if downloaded:
 			var btn_play := Button.new()
-			btn_play.text = "▶  PLAY NOW"
+			btn_play.text = I18n.t("play_now")
 			btn_play.custom_minimum_size = Vector2(0, 68)
 			ThemeManager.style_button(btn_play, true)
 			btn_play.pressed.connect(func():
@@ -997,7 +1190,7 @@ func _on_enchor_results(results: Array, total_found: int, page: int, error_msg: 
 			row_vb.add_child(btn_play)
 		else:
 			var btn_dl := Button.new()
-			btn_dl.text = "⬇  DOWNLOAD & PLAY"
+			btn_dl.text = I18n.t("dl_and_play")
 			btn_dl.custom_minimum_size = Vector2(0, 68)
 			ThemeManager.style_button(btn_dl, true, t["accent_2"])
 			btn_dl.pressed.connect(func():
@@ -1006,6 +1199,8 @@ func _on_enchor_results(results: Array, total_found: int, page: int, error_msg: 
 			)
 			row_vb.add_child(btn_dl)
 
+		_make_scroll_pass(row)
+
 func _on_cover_loaded(art_md5: String, tex: Texture2D) -> void:
 	if _cover_rects.has(art_md5):
 		for rect in _cover_rects[art_md5]:
@@ -1013,25 +1208,69 @@ func _on_cover_loaded(art_md5: String, tex: Texture2D) -> void:
 				rect.texture = tex
 
 # ============================================================================
-# SCREEN 4: PORTRAIT CUSTOMIZE (THEMES & HD FRETBOARD)
+# SCREEN 4: PORTRAIT CUSTOMIZE (VISUALIZERS, HD FRETBOARD & THEMES)
 # ============================================================================
 func _build_customize_screen(parent: MarginContainer, t: Dictionary) -> void:
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 18)
 	parent.add_child(vbox)
 
-	_make_top_bar(vbox, "THEMES & HD DECKS", Screen.HOME, t)
+	_make_top_bar(vbox, I18n.t("customize_title"), Screen.HOME, t)
 
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var scroll := _make_touch_scroll()
 	vbox.add_child(scroll)
 
 	var content_vb := VBoxContainer.new()
 	content_vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content_vb.mouse_filter = Control.MOUSE_FILTER_PASS
 	content_vb.add_theme_constant_override("separation", 18)
 	scroll.add_child(content_vb)
 
-	# Fretboard Surface Card
+	# 1. Background Music Visualizer Selector (6 distinct 60fps visualizers)
+	var viz_card := PanelContainer.new()
+	viz_card.add_theme_stylebox_override("panel", ThemeManager.make_card_style(t["panel"], t["accent"], 22, 2, 8))
+	content_vb.add_child(viz_card)
+
+	var vvb := VBoxContainer.new()
+	vvb.add_theme_constant_override("separation", 14)
+	viz_card.add_child(vvb)
+
+	var vlbl := Label.new()
+	vlbl.text = I18n.t("viz_header")
+	if ThemeManager.font_display:
+		vlbl.add_theme_font_override("font", ThemeManager.font_display)
+	vlbl.add_theme_font_size_override("font_size", 26)
+	vlbl.add_theme_color_override("font_color", t["accent"])
+	vvb.add_child(vlbl)
+
+	var vgrid := GridContainer.new()
+	vgrid.columns = 2
+	vgrid.add_theme_constant_override("h_separation", 10)
+	vgrid.add_theme_constant_override("v_separation", 10)
+	vvb.add_child(vgrid)
+
+	var cur_viz := str(GameState.settings.get("visualizer", "concert_arena"))
+	for vid in ConcertStage.VISUALIZER_IDS:
+		var active := (cur_viz == vid)
+		var vb_btn := Button.new()
+		vb_btn.text = ("✓ " if active else "") + str(ConcertStage.VISUALIZER_NAMES.get(vid, vid))
+		vb_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		vb_btn.custom_minimum_size = Vector2(0, 70)
+		ThemeManager.style_button(vb_btn, active, t["accent"])
+		vb_btn.add_theme_font_size_override("font_size", 21)
+		var target_vid: String = vid
+		vb_btn.pressed.connect(func():
+			GameState.play_click()
+			GameState.settings["visualizer"] = target_vid
+			GameState.save_data()
+			if _stage:
+				_stage.queue_redraw()
+			_show_screen(Screen.CUSTOMIZE, false)
+		)
+		vgrid.add_child(vb_btn)
+	_make_scroll_pass(viz_card)
+
+	# 2. Fretboard Surface Card
 	var board_card := PanelContainer.new()
 	board_card.add_theme_stylebox_override("panel", ThemeManager.make_card_style(t["panel"], t["border"], 22, 2, 8))
 	content_vb.add_child(board_card)
@@ -1041,7 +1280,7 @@ func _build_customize_screen(parent: MarginContainer, t: Dictionary) -> void:
 	board_card.add_child(bvb)
 
 	var blbl := Label.new()
-	blbl.text = "HD FRETBOARD SURFACE"
+	blbl.text = I18n.t("board_header")
 	if ThemeManager.font_display:
 		blbl.add_theme_font_override("font", ThemeManager.font_display)
 	blbl.add_theme_font_size_override("font_size", 26)
@@ -1073,8 +1312,18 @@ func _build_customize_screen(parent: MarginContainer, t: Dictionary) -> void:
 			_show_screen(Screen.CUSTOMIZE, false)
 		)
 		bhb.add_child(bb)
+	_make_scroll_pass(board_card)
 
-	# 5 Full-Width Vertical Theme Cards
+	# 3. 5 Full-Width Vertical Theme Cards
+	var th_hdr := Label.new()
+	th_hdr.text = I18n.t("theme_header")
+	if ThemeManager.font_display:
+		th_hdr.add_theme_font_override("font", ThemeManager.font_display)
+	th_hdr.add_theme_font_size_override("font_size", 24)
+	th_hdr.add_theme_color_override("font_color", t["text_dim"])
+	th_hdr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content_vb.add_child(th_hdr)
+
 	for tid in ThemeManager.THEMES.keys():
 		var td: Dictionary = ThemeManager.THEMES[tid]
 		var active: bool = (str(tid) == ThemeManager.current_theme_id)
@@ -1113,7 +1362,7 @@ func _build_customize_screen(parent: MarginContainer, t: Dictionary) -> void:
 			sw_row.add_child(sw)
 
 		var btn := Button.new()
-		btn.text = "✓  ACTIVE THEME" if active else "APPLY THEME"
+		btn.text = I18n.t("theme_active") if active else I18n.t("theme_apply")
 		btn.custom_minimum_size = Vector2(0, 74)
 		ThemeManager.style_button(btn, active, td["accent"])
 		var target_id := str(tid)
@@ -1122,6 +1371,7 @@ func _build_customize_screen(parent: MarginContainer, t: Dictionary) -> void:
 			ThemeManager.set_theme(target_id)
 		)
 		tv.add_child(btn)
+		_make_scroll_pass(tc)
 
 # ============================================================================
 # SCREEN 5: PORTRAIT SINGLE-COLUMN SMARTPHONE SETTINGS
@@ -1131,7 +1381,7 @@ func _build_settings_screen(parent: MarginContainer, t: Dictionary) -> void:
 	vbox.add_theme_constant_override("separation", 18)
 	parent.add_child(vbox)
 
-	var bar := _make_top_bar(vbox, "SETTINGS", Screen.HOME, t)
+	var bar := _make_top_bar(vbox, I18n.t("settings_title"), Screen.HOME, t)
 
 	_fps_lbl = Label.new()
 	_fps_lbl.text = "60 FPS"
@@ -1141,12 +1391,12 @@ func _build_settings_screen(parent: MarginContainer, t: Dictionary) -> void:
 	_fps_lbl.add_theme_color_override("font_color", t["accent_2"])
 	bar.add_child(_fps_lbl)
 
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var scroll := _make_touch_scroll()
 	vbox.add_child(scroll)
 
 	var content_vb := VBoxContainer.new()
 	content_vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content_vb.mouse_filter = Control.MOUSE_FILTER_PASS
 	content_vb.add_theme_constant_override("separation", 20)
 	scroll.add_child(content_vb)
 
@@ -1159,25 +1409,40 @@ func _build_settings_screen(parent: MarginContainer, t: Dictionary) -> void:
 	c1_vb.add_theme_constant_override("separation", 18)
 	card1.add_child(c1_vb)
 
-	_add_slider_row(c1_vb, "Highway Note Speed", 0.7, 1.8, 0.05, float(GameState.settings.get("note_speed", 1.0)), func(v: float):
+	_add_slider_row(c1_vb, I18n.t("note_speed"), 0.7, 1.8, 0.05, float(GameState.settings.get("note_speed", 1.0)), func(v: float):
 		GameState.settings["note_speed"] = v
 		GameState.save_data()
 	)
-	_add_slider_row(c1_vb, "Music Volume", 0.1, 1.0, 0.05, float(GameState.settings.get("music_volume", 1.0)), func(v: float):
+	_add_slider_row(c1_vb, I18n.t("music_vol"), 0.1, 1.0, 0.05, float(GameState.settings.get("music_volume", 1.0)), func(v: float):
 		GameState.settings["music_volume"] = v
 		GameState.save_data()
 	)
-	_add_slider_row(c1_vb, "SFX Volume", 0.0, 1.0, 0.05, float(GameState.settings.get("sfx_volume", 0.85)), func(v: float):
+	_add_slider_row(c1_vb, I18n.t("sfx_vol"), 0.0, 1.0, 0.05, float(GameState.settings.get("sfx_volume", 0.85)), func(v: float):
 		GameState.settings["sfx_volume"] = v
 		GameState.save_data()
 	)
-	_add_slider_row(c1_vb, "Stage Light Intensity", 0.4, 1.5, 0.05, float(GameState.settings.get("light_intensity", 1.0)), func(v: float):
+	_add_slider_row(c1_vb, I18n.t("light_int"), 0.4, 1.5, 0.05, float(GameState.settings.get("light_intensity", 1.0)), func(v: float):
 		GameState.settings["light_intensity"] = v
 		GameState.save_data()
 	)
 
+	# Flashing Stage Lights ON/OFF Toggle (great for slow songs!)
+	var flash_on := bool(GameState.settings.get("stage_lights_flash", true))
+	var btn_flash := Button.new()
+	btn_flash.text = I18n.t("flash_on") if flash_on else I18n.t("flash_off")
+	btn_flash.custom_minimum_size = Vector2(0, 74)
+	ThemeManager.style_button(btn_flash, flash_on, t["accent_2"])
+	btn_flash.add_theme_font_size_override("font_size", 23)
+	btn_flash.pressed.connect(func():
+		GameState.play_click()
+		GameState.settings["stage_lights_flash"] = not flash_on
+		GameState.save_data()
+		_show_screen(Screen.SETTINGS, false)
+	)
+	c1_vb.add_child(btn_flash)
+
 	var hw_lbl := Label.new()
-	hw_lbl.text = "HIT WINDOW TIMING"
+	hw_lbl.text = I18n.t("hit_window")
 	if ThemeManager.font_display:
 		hw_lbl.add_theme_font_override("font", ThemeManager.font_display)
 	hw_lbl.add_theme_font_size_override("font_size", 24)
@@ -1210,7 +1475,7 @@ func _build_settings_screen(parent: MarginContainer, t: Dictionary) -> void:
 
 	var hap_on := bool(GameState.settings.get("haptics", true))
 	var btn_hap := Button.new()
-	btn_hap.text = "HAPTICS: ON ✓" if hap_on else "HAPTICS: OFF"
+	btn_hap.text = I18n.t("haptics_on") if hap_on else I18n.t("haptics_off")
 	btn_hap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn_hap.custom_minimum_size = Vector2(0, 72)
 	ThemeManager.style_button(btn_hap, hap_on)
@@ -1224,7 +1489,7 @@ func _build_settings_screen(parent: MarginContainer, t: Dictionary) -> void:
 
 	var fps_on := bool(GameState.settings.get("show_fps", true))
 	var btn_fps := Button.new()
-	btn_fps.text = "FPS HUD: ON ✓" if fps_on else "FPS HUD: OFF"
+	btn_fps.text = I18n.t("fps_on") if fps_on else I18n.t("fps_off")
 	btn_fps.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn_fps.custom_minimum_size = Vector2(0, 72)
 	ThemeManager.style_button(btn_fps, fps_on)
@@ -1234,6 +1499,7 @@ func _build_settings_screen(parent: MarginContainer, t: Dictionary) -> void:
 		_show_screen(Screen.SETTINGS, false)
 	)
 	tog_row.add_child(btn_fps)
+	_make_scroll_pass(card1)
 
 	# Card 2: Audio / Bluetooth Calibration
 	var card2 := PanelContainer.new()
@@ -1245,7 +1511,7 @@ func _build_settings_screen(parent: MarginContainer, t: Dictionary) -> void:
 	card2.add_child(c2_vb)
 
 	_cal_lbl = Label.new()
-	_cal_lbl.text = "AUDIO OFFSET: %d ms" % int(round(float(GameState.settings.get("audio_offset_ms", 0.0))))
+	_cal_lbl.text = I18n.t("audio_offset") % int(round(float(GameState.settings.get("audio_offset_ms", 0.0))))
 	if ThemeManager.font_display:
 		_cal_lbl.add_theme_font_override("font", ThemeManager.font_display)
 	_cal_lbl.add_theme_font_size_override("font_size", 26)
@@ -1261,7 +1527,7 @@ func _build_settings_screen(parent: MarginContainer, t: Dictionary) -> void:
 	cal_slider.value_changed.connect(func(v: float):
 		GameState.settings["audio_offset_ms"] = v
 		GameState.save_data()
-		_cal_lbl.text = "AUDIO OFFSET: %d ms" % int(round(v))
+		_cal_lbl.text = I18n.t("audio_offset") % int(round(v))
 	)
 	c2_vb.add_child(cal_slider)
 
@@ -1271,7 +1537,7 @@ func _build_settings_screen(parent: MarginContainer, t: Dictionary) -> void:
 
 	for step_ms in [-10.0, 0.0, 10.0]:
 		var sb := Button.new()
-		sb.text = "RESET 0" if step_ms == 0.0 else ("%+d ms" % int(step_ms))
+		sb.text = I18n.t("reset_0") if step_ms == 0.0 else ("%+d ms" % int(step_ms))
 		sb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		sb.custom_minimum_size = Vector2(0, 68)
 		ThemeManager.style_button(sb, false)
@@ -1283,26 +1549,26 @@ func _build_settings_screen(parent: MarginContainer, t: Dictionary) -> void:
 		step_row.add_child(sb)
 
 	var btn_toggle_beat := Button.new()
-	btn_toggle_beat.text = "▶  START BEAT SOUND TEST"
+	btn_toggle_beat.text = I18n.t("start_beat")
 	btn_toggle_beat.custom_minimum_size = Vector2(0, 74)
 	ThemeManager.style_button(btn_toggle_beat, false)
 	btn_toggle_beat.pressed.connect(func():
 		_cal_test_active = not _cal_test_active
 		_cal_beat_timer = 0.0
 		_cal_taps.clear()
-		btn_toggle_beat.text = "■  STOP BEAT TEST" if _cal_test_active else "▶  START BEAT SOUND TEST"
+		btn_toggle_beat.text = I18n.t("stop_beat") if _cal_test_active else I18n.t("start_beat")
 	)
 	c2_vb.add_child(btn_toggle_beat)
 
 	var btn_tap := Button.new()
-	btn_tap.text = "🥁  TAP ON BEAT (AUTO)"
+	btn_tap.text = I18n.t("tap_beat")
 	btn_tap.custom_minimum_size = Vector2(0, 88)
 	ThemeManager.style_button(btn_tap, true, t["accent_2"])
 	btn_tap.pressed.connect(func():
 		if not _cal_test_active:
 			_cal_test_active = true
 			_cal_beat_timer = 0.0
-			btn_toggle_beat.text = "■  STOP BEAT TEST"
+			btn_toggle_beat.text = I18n.t("stop_beat")
 			return
 		var signed_err := _cal_beat_timer if _cal_beat_timer <= 0.25 else (_cal_beat_timer - 0.5)
 		_cal_taps.append(signed_err * 1000.0)
@@ -1314,6 +1580,7 @@ func _build_settings_screen(parent: MarginContainer, t: Dictionary) -> void:
 		cal_slider.value = clampf(round((sum / float(_cal_taps.size())) / 5.0) * 5.0, -150.0, 150.0)
 	)
 	c2_vb.add_child(btn_tap)
+	_make_scroll_pass(card2)
 
 func _add_slider_row(parent: Control, label_txt: String, min_v: float, max_v: float, step_v: float, init_v: float, cb: Callable) -> void:
 	var vb := VBoxContainer.new()
@@ -1366,7 +1633,7 @@ func _build_download_modal(t: Dictionary) -> void:
 	_dl_modal.add_child(vb)
 
 	_dl_label = Label.new()
-	_dl_label.text = "Downloading .sng package..."
+	_dl_label.text = I18n.t("downloading_pkg")
 	_dl_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_dl_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	if ThemeManager.font_body:
@@ -1379,7 +1646,7 @@ func _build_download_modal(t: Dictionary) -> void:
 	vb.add_child(_dl_bar)
 
 	var btn_cancel := Button.new()
-	btn_cancel.text = "CANCEL"
+	btn_cancel.text = I18n.t("cancel")
 	btn_cancel.custom_minimum_size = Vector2(0, 74)
 	ThemeManager.style_button(btn_cancel, false)
 	btn_cancel.pressed.connect(func():
@@ -1391,7 +1658,7 @@ func _build_download_modal(t: Dictionary) -> void:
 func _start_song_download(meta: Dictionary) -> void:
 	_dl_modal.visible = true
 	_dl_bar.value = 0.0
-	_dl_label.text = "Downloading: " + str(meta.get("name", "Chart")) + "..."
+	_dl_label.text = I18n.t("downloading_name") % str(meta.get("name", "Chart"))
 	EnchorClient.download_chart(meta)
 
 func _on_dl_progress(_md5: String, dl_bytes: int, total_bytes: int) -> void:
@@ -1401,10 +1668,10 @@ func _on_dl_progress(_md5: String, dl_bytes: int, total_bytes: int) -> void:
 	if total_bytes > 0:
 		var tmb := float(total_bytes) / 1048576.0
 		_dl_bar.value = (float(dl_bytes) / float(total_bytes)) * 100.0
-		_dl_label.text = "Downloading... %.1f / %.1f MB" % [mb, tmb]
+		_dl_label.text = I18n.t("downloading_mb") % [mb, tmb]
 	else:
 		_dl_bar.value = fmod(mb * 20.0, 95.0)
-		_dl_label.text = "Downloading... %.1f MB" % mb
+		_dl_label.text = I18n.t("downloading_mb_only") % mb
 
 func _on_dl_completed(md5: String, _sng_path: String, error_msg: String) -> void:
 	_dl_modal.visible = false
