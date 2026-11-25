@@ -20,7 +20,8 @@ enum Screen {
 	CUSTOMIZE = 4,
 	SETTINGS = 5,
 	ABOUT = 6,
-	INTRO = 7
+	INTRO = 7,
+	EXIT_CONFIRM = 8
 }
 
 class VinylDisc extends Control:
@@ -143,21 +144,35 @@ func _process(delta: float) -> void:
 		if _stage:
 			_stage.music_playing = false
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST or what == NOTIFICATION_WM_CLOSE_REQUEST:
+		_handle_back_action()
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
-		if _dl_modal and _dl_modal.visible:
-			EnchorClient.cancel_download()
-			_dl_modal.visible = false
-			get_viewport().set_input_as_handled()
-			return
-		if _current_screen == Screen.DIFFICULTY:
-			GameState.play_click()
-			_show_screen(Screen.SONGS)
-			get_viewport().set_input_as_handled()
-		elif _current_screen != Screen.HOME:
-			GameState.play_click()
-			_show_screen(Screen.HOME)
-			get_viewport().set_input_as_handled()
+		get_viewport().set_input_as_handled()
+		_handle_back_action()
+
+func _handle_back_action() -> void:
+	if _dl_modal and _dl_modal.visible:
+		EnchorClient.cancel_download()
+		_dl_modal.visible = false
+		return
+	if _current_screen == Screen.INTRO:
+		GameState.play_click()
+		_show_screen(Screen.HOME)
+	elif _current_screen == Screen.EXIT_CONFIRM:
+		GameState.play_click()
+		_show_screen(Screen.HOME)
+	elif _current_screen == Screen.DIFFICULTY:
+		GameState.play_click()
+		_show_screen(Screen.SONGS)
+	elif _current_screen != Screen.HOME:
+		GameState.play_click()
+		_show_screen(Screen.HOME)
+	else:
+		GameState.play_click()
+		_show_screen(Screen.EXIT_CONFIRM)
 
 func _on_theme_changed(_id: String) -> void:
 	var keep := _current_screen
@@ -280,6 +295,8 @@ func _show_screen(scr: int, animate: bool = true) -> void:
 			_build_about_screen(page, t)
 		Screen.INTRO:
 			_build_intro_screen(page, t)
+		Screen.EXIT_CONFIRM:
+			_build_exit_confirm_screen(page, t)
 
 	if animate:
 		page.modulate.a = 0.0
@@ -461,34 +478,45 @@ func _build_home_screen(parent: MarginContainer, t: Dictionary) -> void:
 	mid_sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root_vb.add_child(mid_sp)
 
-	# 5. Four Huge Full-Width Smartphone Game Buttons
-	var btn_play := _make_mobile_menu_btn(I18n.t("menu_play"), I18n.t("menu_play_sub"), true, t["accent"], 124)
+	# 5. Four Huge Full-Width Smartphone Game Buttons + Exit Button
+	var btn_play := _make_mobile_menu_btn(I18n.t("menu_play"), I18n.t("menu_play_sub"), true, t["accent"], 114)
 	btn_play.pressed.connect(func():
 		GameState.play_click()
 		_show_screen(Screen.SONGS)
 	)
 	root_vb.add_child(btn_play)
 
-	var btn_store := _make_mobile_menu_btn(I18n.t("menu_store"), I18n.t("menu_store_sub"), false, t["accent_2"], 114)
+	var btn_store := _make_mobile_menu_btn(I18n.t("menu_store"), I18n.t("menu_store_sub"), false, t["accent_2"], 104)
 	btn_store.pressed.connect(func():
 		GameState.play_click()
 		_show_screen(Screen.ENCHOR)
 	)
 	root_vb.add_child(btn_store)
 
-	var btn_cust := _make_mobile_menu_btn(I18n.t("menu_customize"), I18n.t("menu_customize_sub"), false, t["accent_3"], 114)
+	var btn_cust := _make_mobile_menu_btn(I18n.t("menu_customize"), I18n.t("menu_customize_sub"), false, t["accent_3"], 104)
 	btn_cust.pressed.connect(func():
 		GameState.play_click()
 		_show_screen(Screen.CUSTOMIZE)
 	)
 	root_vb.add_child(btn_cust)
 
-	var btn_set := _make_mobile_menu_btn(I18n.t("menu_settings"), I18n.t("menu_settings_sub"), false, t["border"], 114)
+	var btn_set := _make_mobile_menu_btn(I18n.t("menu_settings"), I18n.t("menu_settings_sub"), false, t["border"], 104)
 	btn_set.pressed.connect(func():
 		GameState.play_click()
 		_show_screen(Screen.SETTINGS)
 	)
 	root_vb.add_child(btn_set)
+
+	var btn_exit := Button.new()
+	btn_exit.text = I18n.t("menu_exit")
+	btn_exit.custom_minimum_size = Vector2(0, 72)
+	ThemeManager.style_button(btn_exit, false, Color(1.0, 0.28, 0.36))
+	btn_exit.add_theme_font_size_override("font_size", 26)
+	btn_exit.pressed.connect(func():
+		GameState.play_click()
+		_show_screen(Screen.EXIT_CONFIRM)
+	)
+	root_vb.add_child(btn_exit)
 
 func _make_mobile_menu_btn(title_txt: String, sub_txt: String, primary: bool, col: Color, min_h: int) -> Button:
 	var t := ThemeManager.get_theme_data()
@@ -1933,4 +1961,72 @@ func _build_intro_screen(parent: MarginContainer, t: Dictionary) -> void:
 		if is_instance_valid(self) and _current_screen == Screen.INTRO:
 			_show_screen(Screen.HOME, true)
 	)
+
+# ============================================================================
+# SCREEN 8: EXIT GAME CONFIRMATION PAGE
+# ============================================================================
+func _build_exit_confirm_screen(parent: MarginContainer, t: Dictionary) -> void:
+	var root_vb := VBoxContainer.new()
+	root_vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	root_vb.add_theme_constant_override("separation", 24)
+	parent.add_child(root_vb)
+
+	var card := PanelContainer.new()
+	card.add_theme_stylebox_override("panel", ThemeManager.make_card_style(Color(0.05, 0.04, 0.11, 0.96), Color(1.0, 0.28, 0.36), 28, 3, 24))
+	root_vb.add_child(card)
+
+	var cv := VBoxContainer.new()
+	cv.alignment = BoxContainer.ALIGNMENT_CENTER
+	cv.add_theme_constant_override("separation", 24)
+	card.add_child(cv)
+
+	var icon_lbl := Label.new()
+	icon_lbl.text = "⏻"
+	icon_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon_lbl.add_theme_font_size_override("font_size", 86)
+	icon_lbl.add_theme_color_override("font_color", Color(1.0, 0.30, 0.38))
+	cv.add_child(icon_lbl)
+
+	var title := Label.new()
+	title.text = I18n.t("exit_title")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if ThemeManager.font_display:
+		title.add_theme_font_override("font", ThemeManager.font_display)
+	title.add_theme_font_size_override("font_size", 42)
+	title.add_theme_color_override("font_color", Color.WHITE)
+	cv.add_child(title)
+
+	var msg := Label.new()
+	msg.text = I18n.t("exit_msg")
+	msg.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if ThemeManager.font_body:
+		msg.add_theme_font_override("font", ThemeManager.font_body)
+	msg.add_theme_font_size_override("font_size", 28)
+	msg.add_theme_color_override("font_color", t["text_dim"])
+	cv.add_child(msg)
+
+	var btn_stay := Button.new()
+	btn_stay.text = I18n.t("exit_cancel")
+	btn_stay.custom_minimum_size = Vector2(0, 92)
+	ThemeManager.style_button(btn_stay, true, t["accent"])
+	btn_stay.add_theme_font_size_override("font_size", 30)
+	btn_stay.pressed.connect(func():
+		GameState.play_click()
+		_show_screen(Screen.HOME)
+	)
+	cv.add_child(btn_stay)
+
+	var btn_yes := Button.new()
+	btn_yes.text = I18n.t("exit_confirm")
+	btn_yes.custom_minimum_size = Vector2(0, 86)
+	ThemeManager.style_button(btn_yes, false, Color(1.0, 0.26, 0.34))
+	btn_yes.add_theme_font_size_override("font_size", 28)
+	btn_yes.pressed.connect(func():
+		GameState.play_click()
+		GameState.save_data()
+		get_tree().quit()
+	)
+	cv.add_child(btn_yes)
+
 

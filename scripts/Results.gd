@@ -1,6 +1,21 @@
+# Copyright (c) 2026 ipungsx (https://github.com/ipungsx)
 extends Control
 
 var _stage: ConcertStage
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST or what == NOTIFICATION_WM_CLOSE_REQUEST:
+		_go_back_to_songs()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		_go_back_to_songs()
+
+func _go_back_to_songs() -> void:
+	GameState.play_click()
+	GameState.open_screen_on_menu = 1
+	get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

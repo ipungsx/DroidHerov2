@@ -42,6 +42,8 @@ var _sfx_click: AudioStreamWAV
 func _ready() -> void:
 	Engine.max_fps = 60
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED)
+	get_tree().set_auto_accept_quit(false)
+	get_tree().set_quit_on_go_back(false)
 	_ensure_dirs()
 	_setup_audio_buses()
 	_build_sfx()

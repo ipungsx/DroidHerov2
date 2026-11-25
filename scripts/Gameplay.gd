@@ -13,6 +13,8 @@ var _highway_canvas: Control
 var _hud_layer: Control
 var _pause_panel: PanelContainer
 var _fail_panel: PanelContainer
+var _countdown_panel: PanelContainer
+var _countdown_num: Label
 
 # Audio players (single stream or synchronized multi-stem songs)
 var _players: Array[AudioStreamPlayer] = []
@@ -36,6 +38,8 @@ var _song_time: float = -2.4
 var _audio_drift_avg: float = 0.0
 var _started_audio: bool = false
 var _paused: bool = false
+var _resume_countdown: float = 0.0
+var _last_cd_sec: int = 0
 var _failed: bool = false
 var _finished: bool = false
 var _speed_scale: float = 1.0
@@ -428,6 +432,44 @@ func _build_overlays(t: Dictionary) -> void:
 	)
 	fv.add_child(btn_fquit)
 
+	# 5-Second Resume Countdown Overlay
+	_countdown_panel = PanelContainer.new()
+	_countdown_panel.visible = false
+	_countdown_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_countdown_panel.set_anchors_preset(Control.PRESET_CENTER)
+	_countdown_panel.offset_left = -210
+	_countdown_panel.offset_top = -150
+	_countdown_panel.offset_right = 210
+	_countdown_panel.offset_bottom = 150
+	_countdown_panel.add_theme_stylebox_override("panel", ThemeManager.make_card_style(Color(0.03, 0.04, 0.10, 0.94), t["accent"], 28, 3, 24))
+	add_child(_countdown_panel)
+
+	var cd_vb := VBoxContainer.new()
+	cd_vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	cd_vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cd_vb.add_theme_constant_override("separation", 6)
+	_countdown_panel.add_child(cd_vb)
+
+	var cd_lbl := Label.new()
+	cd_lbl.text = I18n.t("resume_ready")
+	cd_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cd_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if ThemeManager.font_display:
+		cd_lbl.add_theme_font_override("font", ThemeManager.font_display)
+	cd_lbl.add_theme_font_size_override("font_size", 30)
+	cd_lbl.add_theme_color_override("font_color", t["accent_2"])
+	cd_vb.add_child(cd_lbl)
+
+	_countdown_num = Label.new()
+	_countdown_num.text = "5"
+	_countdown_num.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_countdown_num.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if ThemeManager.font_display:
+		_countdown_num.add_theme_font_override("font", ThemeManager.font_display)
+	_countdown_num.add_theme_font_size_override("font_size", 136)
+	_countdown_num.add_theme_color_override("font_color", t["accent"])
+	cd_vb.add_child(_countdown_num)
+
 func _load_active_song() -> void:
 	if GameState.current_song.is_empty():
 		GameState.scan_library()
@@ -505,8 +547,27 @@ func _spawn_spark(x: float, y: float, vx: float, vy: float, life: float, col: Co
 	_spark_col[idx] = col
 
 func _process(delta: float) -> void:
-	if _paused or _failed or _finished:
+	if _failed or _finished:
 		_stage.music_playing = false
+		return
+	if _paused:
+		_stage.music_playing = false
+		if _resume_countdown > 0.0:
+			_resume_countdown -= delta
+			if _resume_countdown <= 0.0:
+				_resume_countdown = 0.0
+				_paused = false
+				if _countdown_panel:
+					_countdown_panel.visible = false
+				for p in _players:
+					p.stream_paused = false
+			else:
+				var sec_left := ceili(_resume_countdown)
+				if sec_left != _last_cd_sec:
+					_last_cd_sec = sec_left
+					if _countdown_num:
+						_countdown_num.text = str(sec_left)
+					GameState.play_click()
 		return
 
 	# Smooth real-time clock with gentle <=1.5% slew toward audio position (zero jitter)
@@ -1034,17 +1095,46 @@ static func _format_commas(val: int) -> String:
 		cnt += 1
 	return out
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST or what == NOTIFICATION_WM_CLOSE_REQUEST:
+		if _failed:
+			GameState.open_screen_on_menu = 1
+			get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
+		elif not _finished:
+			_toggle_pause()
+
 func _toggle_pause() -> void:
 	if _failed or _finished:
 		return
-	_paused = not _paused
-	_pause_panel.visible = _paused
-	_touch_to_lane.clear()
-	for i in range(5):
-		_key_pressed[i] = false
-		_lane_pressed[i] = false
-	for p in _players:
-		p.stream_paused = _paused
+	if not _paused:
+		# Pause immediately
+		_paused = true
+		_resume_countdown = 0.0
+		_pause_panel.visible = true
+		if _countdown_panel:
+			_countdown_panel.visible = false
+		_touch_to_lane.clear()
+		for i in range(5):
+			_key_pressed[i] = false
+			_lane_pressed[i] = false
+		for p in _players:
+			p.stream_paused = true
+	elif _resume_countdown > 0.0:
+		# Pressing pause during countdown cancels countdown & reopens Pause menu
+		_resume_countdown = 0.0
+		if _countdown_panel:
+			_countdown_panel.visible = false
+		_pause_panel.visible = true
+	else:
+		# Resuming from pause -> start 5-second Get Ready countdown!
+		_pause_panel.visible = false
+		_resume_countdown = 5.0
+		_last_cd_sec = 5
+		if _countdown_num:
+			_countdown_num.text = "5"
+		if _countdown_panel:
+			_countdown_panel.visible = true
+		GameState.play_click()
 
 func _trigger_fail() -> void:
 	_failed = true

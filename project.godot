@@ -12,7 +12,7 @@ config_version=5
 
 config/name="DroidHeroV2"
 config/description="60fps 5-fret guitar rhythm game for Android by ipungsx"
-config/version="2.5.0"
+config/version="2.6.0"
 run/main_scene="res://scenes/MainMenu.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 run/max_fps=60
